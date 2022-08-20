@@ -1,0 +1,11 @@
+---
+source: tests/corpus.rs
+expression: "other-raw r#\"hello\"world\"#\n"
+---
+(document
+  (node
+    (name other-raw)
+    (trivia " ")
+    (argument
+      (value r#"hello"world"#))
+    (trivia "\n")))

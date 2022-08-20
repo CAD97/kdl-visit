@@ -1,0 +1,17 @@
+---
+source: tests/corpus.rs
+expression: "node \"this\\nhas\\tescapes\"\nother r\"C:\\Users\\zkat\\\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (argument
+      (value "this\nhas\tescapes"))
+    (trivia "\n"))
+  (node
+    (name other)
+    (trivia " ")
+    (argument
+      (value r"C:\Users\zkat\"))
+    (trivia "\n")))

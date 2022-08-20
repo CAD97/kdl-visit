@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "string \"my\nmultiline\nvalue\"\n"
+---
+(document
+  (node
+    (name string)
+    (trivia " ")
+    (argument
+      (value "my
+multiline
+value"))
+    (trivia "\n")))

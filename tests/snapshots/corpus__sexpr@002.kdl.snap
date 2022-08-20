@@ -1,0 +1,20 @@
+---
+source: tests/corpus.rs
+expression: "bookmarks 12 15 188 1234\n"
+---
+(document
+  (node
+    (name bookmarks)
+    (trivia " ")
+    (argument
+      (value 12))
+    (trivia " ")
+    (argument
+      (value 15))
+    (trivia " ")
+    (argument
+      (value 188))
+    (trivia " ")
+    (argument
+      (value 1234))
+    (trivia "\n")))

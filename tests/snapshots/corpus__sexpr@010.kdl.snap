@@ -1,0 +1,23 @@
+---
+source: tests/corpus.rs
+expression: "my-hex 0xdeadbeef\nmy-octal 0o755\nmy-binary 0b10101101\n"
+---
+(document
+  (node
+    (name my-hex)
+    (trivia " ")
+    (argument
+      (value 0xdeadbeef))
+    (trivia "\n"))
+  (node
+    (name my-octal)
+    (trivia " ")
+    (argument
+      (value 0o755))
+    (trivia "\n"))
+  (node
+    (name my-binary)
+    (trivia " ")
+    (argument
+      (value 0b10101101))
+    (trivia "\n")))

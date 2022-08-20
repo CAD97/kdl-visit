@@ -1,0 +1,86 @@
+---
+source: tests/corpus.rs
+expression: "// Nodes can be separated into multiple lines\ntitle \\\n  \"Some title\"\n\n\n// Files must be utf8 encoded!\nsmile \"😁\"\n\n// Instead of anonymous nodes, nodes and properties can be wrapped\n// in \"\" for arbitrary node names.\n\"!@#$@$%Q#$%~@!40\" \"1.2.3\" \"!!!!!\"=true\n\n// The following is a legal bare identifier:\nfoo123~!@#$%^&*.:'|?+ \"weeee\"\n\n// And you can also use unicode!\nノード　お名前=\"☜(ﾟヮﾟ☜)\"\n\n// kdl specifically allows properties and values to be\n// interspersed with each other, much like CLI commands.\nfoo bar=true \"baz\" quux=false 1 2 3\n"
+---
+(document
+  (trivia "// Nodes can be separated into multiple lines")
+  (trivia "\n")
+  (node
+    (name title)
+    (trivia " ")
+    (trivia "\\")
+    (trivia "\n")
+    (trivia "  ")
+    (argument
+      (value "Some title"))
+    (trivia "\n\n\n"))
+  (trivia "// Files must be utf8 encoded!")
+  (trivia "\n")
+  (node
+    (name smile)
+    (trivia " ")
+    (argument
+      (value "😁"))
+    (trivia "\n\n"))
+  (trivia "// Instead of anonymous nodes, nodes and properties can be wrapped")
+  (trivia "\n")
+  (trivia "// in \"\" for arbitrary node names.")
+  (trivia "\n")
+  (node
+    (name "!@#$@$%Q#$%~@!40")
+    (trivia " ")
+    (argument
+      (value "1.2.3"))
+    (trivia " ")
+    (property
+      (name "!!!!!")
+      (trivia "=")
+      (value true))
+    (trivia "\n\n"))
+  (trivia "// The following is a legal bare identifier:")
+  (trivia "\n")
+  (node
+    (name foo123~!@#$%^&*.:'|?+)
+    (trivia " ")
+    (argument
+      (value "weeee"))
+    (trivia "\n\n"))
+  (trivia "// And you can also use unicode!")
+  (trivia "\n")
+  (node
+    (name ノード)
+    (trivia "\u{3000}")
+    (property
+      (name お名前)
+      (trivia "=")
+      (value "☜(ﾟヮﾟ☜)"))
+    (trivia "\n\n"))
+  (trivia "// kdl specifically allows properties and values to be")
+  (trivia "\n")
+  (trivia "// interspersed with each other, much like CLI commands.")
+  (trivia "\n")
+  (node
+    (name foo)
+    (trivia " ")
+    (property
+      (name bar)
+      (trivia "=")
+      (value true))
+    (trivia " ")
+    (argument
+      (value "baz"))
+    (trivia " ")
+    (property
+      (name quux)
+      (trivia "=")
+      (value false))
+    (trivia " ")
+    (argument
+      (value 1))
+    (trivia " ")
+    (argument
+      (value 2))
+    (trivia " ")
+    (argument
+      (value 3))
+    (trivia "\n")))

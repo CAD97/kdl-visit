@@ -1,0 +1,70 @@
+---
+source: tests/corpus.rs
+expression: "numbers (u8)10 (i32)20 myfloat=(f32)1.5 {\n  strings (uuid)\"123e4567-e89b-12d3-a456-426614174000\" (date)\"2021-02-03\" filter=(regex)r\"$\\d+\"\n  (author)person name=\"Alex\"\n}\n"
+---
+(document
+  (node
+    (name numbers)
+    (trivia " ")
+    (argument
+      (trivia "(")
+      (type u8)
+      (trivia ")")
+      (value 10))
+    (trivia " ")
+    (argument
+      (trivia "(")
+      (type i32)
+      (trivia ")")
+      (value 20))
+    (trivia " ")
+    (property
+      (name myfloat)
+      (trivia "=")
+      (trivia "(")
+      (type f32)
+      (trivia ")")
+      (value 1.5))
+    (trivia " ")
+    (trivia "{")
+    (children
+      (trivia "{")
+      (trivia "\n")
+      (trivia "  ")
+      (node
+        (name strings)
+        (trivia " ")
+        (argument
+          (trivia "(")
+          (type uuid)
+          (trivia ")")
+          (value "123e4567-e89b-12d3-a456-426614174000"))
+        (trivia " ")
+        (argument
+          (trivia "(")
+          (type date)
+          (trivia ")")
+          (value "2021-02-03"))
+        (trivia " ")
+        (property
+          (name filter)
+          (trivia "=")
+          (trivia "(")
+          (type regex)
+          (trivia ")")
+          (value r"$\d+"))
+        (trivia "\n"))
+      (trivia "  ")
+      (node
+        (trivia "(")
+        (type author)
+        (trivia ")")
+        (name person)
+        (trivia " ")
+        (property
+          (name name)
+          (trivia "=")
+          (value "Alex"))
+        (trivia "\n")))
+    (trivia "}"))
+  (trivia "\n"))

@@ -1,0 +1,17 @@
+---
+source: tests/corpus.rs
+expression: "node1; node2; node3;\n"
+---
+(document
+  (node
+    (name node1)
+    (trivia ";"))
+  (trivia " ")
+  (node
+    (name node2)
+    (trivia ";"))
+  (trivia " ")
+  (node
+    (name node3)
+    (trivia ";"))
+  (trivia "\n"))

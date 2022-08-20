@@ -1,0 +1,21 @@
+---
+source: tests/corpus.rs
+expression: "author \"Alex Monad\" email=\"alex@example.com\" active=true\n"
+---
+(document
+  (node
+    (name author)
+    (trivia " ")
+    (argument
+      (value "Alex Monad"))
+    (trivia " ")
+    (property
+      (name email)
+      (trivia "=")
+      (value "alex@example.com"))
+    (trivia " ")
+    (property
+      (name active)
+      (trivia "=")
+      (value true))
+    (trivia "\n")))

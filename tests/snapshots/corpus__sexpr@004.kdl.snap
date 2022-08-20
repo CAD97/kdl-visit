@@ -1,0 +1,42 @@
+---
+source: tests/corpus.rs
+expression: "contents {\n  section \"First section\" {\n    paragraph \"This is the first paragraph\"\n    paragraph \"This is the second paragraph\"\n  }\n}\n"
+---
+(document
+  (node
+    (name contents)
+    (trivia " ")
+    (trivia "{")
+    (children
+      (trivia "{")
+      (trivia "\n")
+      (trivia "  ")
+      (node
+        (name section)
+        (trivia " ")
+        (argument
+          (value "First section"))
+        (trivia " ")
+        (trivia "{")
+        (children
+          (trivia "{")
+          (trivia "\n")
+          (trivia "    ")
+          (node
+            (name paragraph)
+            (trivia " ")
+            (argument
+              (value "This is the first paragraph"))
+            (trivia "\n"))
+          (trivia "    ")
+          (node
+            (name paragraph)
+            (trivia " ")
+            (argument
+              (value "This is the second paragraph"))
+            (trivia "\n"))
+          (trivia "  "))
+        (trivia "}"))
+      (trivia "\n"))
+    (trivia "}"))
+  (trivia "\n"))

@@ -1,0 +1,19 @@
+---
+source: tests/corpus.rs
+expression: "// C style\n\n/*\nC style multiline\n*/\n\ntag /*foo=true*/ bar=false\n\n/*/*\nhello\n*/*/\n"
+---
+(document
+  (trivia "// C style")
+  (trivia "\n\n")
+  (trivia "/*\nC style multiline\n*/")
+  (trivia "\n\n")
+  (node
+    (name tag)
+    (trivia " /*foo=true*/ ")
+    (property
+      (name bar)
+      (trivia "=")
+      (value false))
+    (trivia "\n\n"))
+  (trivia "/*/*\nhello\n*/*/")
+  (trivia "\n"))

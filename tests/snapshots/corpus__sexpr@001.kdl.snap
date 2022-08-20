@@ -1,0 +1,11 @@
+---
+source: tests/corpus.rs
+expression: "title \"Hello, World\"\n"
+---
+(document
+  (node
+    (name title)
+    (trivia " ")
+    (argument
+      (value "Hello, World"))
+    (trivia "\n")))

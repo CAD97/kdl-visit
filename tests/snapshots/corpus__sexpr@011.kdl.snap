@@ -1,0 +1,11 @@
+---
+source: tests/corpus.rs
+expression: "bignum 1_000_000\n"
+---
+(document
+  (node
+    (name bignum)
+    (trivia " ")
+    (argument
+      (value 1_000_000))
+    (trivia "\n")))

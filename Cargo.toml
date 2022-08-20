@@ -1,0 +1,26 @@
+[package]
+name = "kdl-edit"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "kdl"
+
+[[test]]
+name = "corpus"
+required-features = ["miette", "miette/fancy"]
+
+[features]
+std = ["dep:thiserror"]
+miette = ["dep:miette", "std"]
+
+[dependencies]
+logos = { version = "0.12.1", default-features = false, features = ["export_derive"] }
+miette = { version = "5.3.0", default-features = false, optional = true }
+rust_decimal = { version = "1.26.1", default-features = false }
+sptr = "0.3.2"
+thiserror = { version = "1.0.32", default-features = false, optional = true }
+
+[dev-dependencies]
+insta = { version = "1.18.2", default-features = false, features = ["colors", "glob"] }
+miette = { version = "5.3.0", features = ["fancy"] }
