@@ -52,8 +52,8 @@
 // impl<'kdl> VisitChildren<'kdl> for BuildDocument<'kdl> {
 //     type VisitNode = BuildNode<'kdl>;
 
-//     fn visit_trivia(&mut self, src: &'kdl str) {
-//         extend(self.kdl, &mut self.trailing, src)
+//     fn visit_trivia(&mut self, trivia: &'kdl str) {
+//         extend(self.kdl, &mut self.trailing, trivia)
 //     }
 
 //     fn visit_node(&mut self) -> Self::VisitNode {
@@ -92,8 +92,8 @@
 //     type VisitProperty = BuildProperty<'kdl>;
 //     type VisitChildren = BuildChildren<'kdl>;
 
-//     fn visit_trivia(&mut self, src: &'kdl str) {
-//         extend(self.kdl, &mut self.trailing, src)
+//     fn visit_trivia(&mut self, trivia: &'kdl str) {
+//         extend(self.kdl, &mut self.trailing, trivia)
 //     }
 
 //     fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {
@@ -215,8 +215,8 @@
 //         let _ = value;
 //     }
 
-//     fn visit_trivia(&mut self, src: &'kdl str) {
-//         let _ = src;
+//     fn visit_trivia(&mut self, trivia: &'kdl str) {
+//         let _ = trivia;
 //     }
 
 //     fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {

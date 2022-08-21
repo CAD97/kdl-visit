@@ -4,7 +4,7 @@ use {
         error::ParseErrorKind,
         lexer::{Lexer, Token},
     },
-    core::{ops::Range, str::FromStr},
+    core::str::FromStr,
     kdl::{
         components::*,
         utils::{locate, unescape},
@@ -18,6 +18,10 @@ mod error;
 mod expected;
 mod lexer;
 mod visit;
+
+pub fn validate_kdl_string<'kdl>(kdl: &'kdl str) -> Result<(), ParseError<'kdl>> {
+    visit_kdl_string(kdl, ())
+}
 
 pub fn visit_kdl_string<'kdl, V: VisitDocument<'kdl>>(
     kdl: &'kdl str,

@@ -22,19 +22,19 @@ impl<'kdl, V: VisitNode<'kdl>> VisitNodeSlashdash<'kdl> for V {
 pub(crate) struct SlashdashVisitor<'a, 'kdl>(Option<&'a mut dyn VisitTrivia<'kdl>>);
 
 impl<'a, 'kdl> SlashdashVisitor<'a, 'kdl> {
-    fn visit(&mut self, src: &'kdl str) {
+    fn visit(&mut self, trivia: &'kdl str) {
         self.0
             .as_mut()
             .expect("kdl visitor should not be called while visiting child component")
-            .visit_trivia(src);
+            .visit_trivia(trivia);
     }
 }
 
 impl<'kdl> VisitChildren<'kdl> for SlashdashVisitor<'_, 'kdl> {
     type VisitNode = Self;
 
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.visit(src);
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.visit(trivia);
     }
 
     fn visit_node(&mut self) -> Self::VisitNode {
@@ -51,8 +51,8 @@ impl<'kdl> VisitNode<'kdl> for SlashdashVisitor<'_, 'kdl> {
     type VisitProperty = Self;
     type VisitChildren = Self;
 
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.visit(src)
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.visit(trivia)
     }
 
     fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {
@@ -89,8 +89,8 @@ impl<'kdl> VisitNode<'kdl> for SlashdashVisitor<'_, 'kdl> {
 }
 
 impl<'kdl> VisitArgument<'kdl> for SlashdashVisitor<'_, 'kdl> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.visit(src)
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.visit(trivia)
     }
 
     fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {
@@ -103,8 +103,8 @@ impl<'kdl> VisitArgument<'kdl> for SlashdashVisitor<'_, 'kdl> {
 }
 
 impl<'kdl> VisitProperty<'kdl> for SlashdashVisitor<'_, 'kdl> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.visit(src)
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.visit(trivia)
     }
 
     fn visit_name(&mut self, name: crate::Identifier<'kdl>) {

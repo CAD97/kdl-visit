@@ -21,9 +21,7 @@ fn run_error_tests() {
     insta::glob!("corpus/*.kdl", |path| {
         let input = std::fs::read_to_string(path).unwrap();
         let input = input.replace("\r\n", "\n");
-        let dump = RefCell::new(String::new());
-        let builder = BuildSExpr::new(&dump);
-        if let Err(e) = kdl::visit_kdl_string(&input, builder) {
+        if let Err(e) = kdl::validate_kdl_string(&input) {
             let e = e.into_owned();
             let theme = miette::GraphicalReportHandler::new_themed(
                 miette::GraphicalTheme::unicode_nocolor(),
@@ -86,9 +84,9 @@ impl VisitDocument<'_> for BuildSExpr<'_> {
 impl VisitChildren<'_> for BuildSExpr<'_> {
     type VisitNode = Self;
 
-    fn visit_trivia(&mut self, src: &str) {
+    fn visit_trivia(&mut self, trivia: &str) {
         self.trivia(true);
-        w!(self: "{:?}", src);
+        w!(self: "{:?}", trivia);
     }
 
     fn visit_node(&mut self) -> Self::VisitNode {
@@ -111,9 +109,9 @@ impl VisitNode<'_> for BuildSExpr<'_> {
     type VisitProperty = Self;
     type VisitChildren = Self;
 
-    fn visit_trivia(&mut self, src: &str) {
+    fn visit_trivia(&mut self, trivia: &str) {
         self.trivia(true);
-        w!(self: "{:?}", src);
+        w!(self: "{:?}", trivia);
     }
 
     fn visit_type(&mut self, annotation: kdl::Identifier<'_>) {
@@ -170,9 +168,9 @@ impl VisitNode<'_> for BuildSExpr<'_> {
 }
 
 impl VisitArgument<'_> for BuildSExpr<'_> {
-    fn visit_trivia(&mut self, src: &str) {
+    fn visit_trivia(&mut self, trivia: &str) {
         self.trivia(true);
-        w!(self: "{:?}", src);
+        w!(self: "{:?}", trivia);
     }
 
     fn visit_type(&mut self, annotation: kdl::Identifier<'_>) {
@@ -187,9 +185,9 @@ impl VisitArgument<'_> for BuildSExpr<'_> {
 }
 
 impl VisitProperty<'_> for BuildSExpr<'_> {
-    fn visit_trivia(&mut self, src: &str) {
+    fn visit_trivia(&mut self, trivia: &str) {
         self.trivia(true);
-        w!(self: "{:?}", src);
+        w!(self: "{:?}", trivia);
     }
 
     fn visit_name(&mut self, name: kdl::Identifier<'_>) {

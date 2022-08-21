@@ -15,6 +15,6 @@ pub use kdl::{
         Document, Entry, Identifier, IdentifierKind, Node, Number, NumberFormat, String,
         TryFromNumberError, Value,
     },
-    parse::{visit_kdl_string, ParseError},
+    parse::{validate_kdl_string, visit_kdl_string, ParseError},
     visit::{VisitArgument, VisitChildren, VisitDocument, VisitNode, VisitProperty},
 };

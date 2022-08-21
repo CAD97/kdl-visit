@@ -19,8 +19,8 @@ pub trait VisitDocument<'kdl>: VisitChildren<'kdl> {
 pub trait VisitChildren<'kdl> {
     type VisitNode: VisitNode<'kdl>;
 
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        let _ = src;
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        let _ = trivia;
     }
 
     fn visit_node(&mut self) -> Self::VisitNode;
@@ -34,8 +34,8 @@ pub trait VisitNode<'kdl> {
     type VisitProperty: VisitProperty<'kdl>;
     type VisitChildren: VisitChildren<'kdl>;
 
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        let _ = src;
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        let _ = trivia;
     }
 
     fn visit_type(&mut self, annotation: kdl::Identifier<'kdl>) {
@@ -63,8 +63,8 @@ pub trait VisitNode<'kdl> {
 }
 
 pub trait VisitArgument<'kdl> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        let _ = src;
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        let _ = trivia;
     }
 
     fn visit_type(&mut self, annotation: kdl::Identifier<'kdl>) {
@@ -77,8 +77,8 @@ pub trait VisitArgument<'kdl> {
 }
 
 pub trait VisitProperty<'kdl> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        let _ = src;
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        let _ = trivia;
     }
 
     fn visit_name(&mut self, name: kdl::Identifier<'kdl>) {

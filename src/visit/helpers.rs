@@ -1,7 +1,7 @@
 use {super::*, ref_cast::RefCast};
 
 pub(crate) trait VisitTrivia<'kdl> {
-    fn visit_trivia(&mut self, src: &'kdl str);
+    fn visit_trivia(&mut self, trivia: &'kdl str);
 }
 
 pub(crate) trait VisitTypeAnnotation<'kdl>: VisitTrivia<'kdl> {
@@ -16,8 +16,8 @@ pub(crate) trait VisitValue<'kdl>: VisitTypeAnnotation<'kdl> {
 #[repr(transparent)]
 pub(crate) struct ChildrenVisitor<V>(V);
 impl<'kdl, V: VisitChildren<'kdl>> VisitTrivia<'kdl> for ChildrenVisitor<V> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.0.visit_trivia(src);
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.0.visit_trivia(trivia);
     }
 }
 
@@ -25,8 +25,8 @@ impl<'kdl, V: VisitChildren<'kdl>> VisitTrivia<'kdl> for ChildrenVisitor<V> {
 #[repr(transparent)]
 pub(crate) struct NodeVisitor<V>(V);
 impl<'kdl, V: VisitNode<'kdl>> VisitTrivia<'kdl> for NodeVisitor<V> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.0.visit_trivia(src);
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.0.visit_trivia(trivia);
     }
 }
 impl<'kdl, V: VisitNode<'kdl>> VisitTypeAnnotation<'kdl> for NodeVisitor<V> {
@@ -39,8 +39,8 @@ impl<'kdl, V: VisitNode<'kdl>> VisitTypeAnnotation<'kdl> for NodeVisitor<V> {
 #[repr(transparent)]
 pub(crate) struct ArgumentVisitor<V>(V);
 impl<'kdl, V: VisitArgument<'kdl>> VisitTrivia<'kdl> for ArgumentVisitor<V> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.0.visit_trivia(src);
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.0.visit_trivia(trivia);
     }
 }
 impl<'kdl, V: VisitArgument<'kdl>> VisitTypeAnnotation<'kdl> for ArgumentVisitor<V> {
@@ -58,8 +58,8 @@ impl<'kdl, V: VisitArgument<'kdl>> VisitValue<'kdl> for ArgumentVisitor<V> {
 #[repr(transparent)]
 pub(crate) struct PropertyVisitor<V>(V);
 impl<'kdl, V: VisitProperty<'kdl>> VisitTrivia<'kdl> for PropertyVisitor<V> {
-    fn visit_trivia(&mut self, src: &'kdl str) {
-        self.0.visit_trivia(src);
+    fn visit_trivia(&mut self, trivia: &'kdl str) {
+        self.0.visit_trivia(trivia);
     }
 }
 impl<'kdl, V: VisitProperty<'kdl>> VisitTypeAnnotation<'kdl> for PropertyVisitor<V> {
