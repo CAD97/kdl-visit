@@ -1,5 +1,3 @@
-use alloc::string::ToString;
-
 use {
     alloc::borrow::Cow,
     core::{fmt, ops::Range},
@@ -7,7 +5,7 @@ use {
 };
 #[cfg(feature = "miette")]
 use {
-    alloc::{boxed::Box, format},
+    alloc::{boxed::Box, string::ToString},
     kdl::utils::display,
     miette::{Diagnostic, LabeledSpan, SourceCode},
 };
@@ -61,7 +59,8 @@ pub(super) enum ParseErrorKind {
         src: Range<usize>,
     },
     MissingSpace {
-        pos: usize,
+        entry: Range<usize>,
+        is_property: bool,
     },
 }
 
@@ -119,6 +118,7 @@ impl fmt::Display for ParseError<'_> {
     }
 }
 
+// TODO: use the diagnostic derive?
 #[cfg(feature = "miette")]
 impl Diagnostic for ParseError<'_> {
     fn code<'a>(&'a self) -> Option<Box<dyn 'a + fmt::Display>> {
@@ -174,78 +174,67 @@ impl Diagnostic for ParseError<'_> {
     }
 
     fn labels(&self) -> Option<Box<dyn '_ + Iterator<Item = LabeledSpan>>> {
-        Some(match &self.kind {
-            ParseErrorKind::InvalidEscape { src } => {
-                Box::new([LabeledSpan::new(None, src.start, src.len())].into_iter())
-            }
+        fn labeled(label: impl fmt::Display, span: Range<usize>) -> LabeledSpan {
+            LabeledSpan::new(Some(label.to_string()), span.start, span.len())
+        }
+
+        fn unlabeled(span: Range<usize>) -> LabeledSpan {
+            LabeledSpan::new(None, span.start, span.len())
+        }
+
+        Some(match self.kind.clone() {
+            ParseErrorKind::InvalidEscape { src } => Box::new([unlabeled(src)].into_iter()),
             ParseErrorKind::Unexpected {
                 got: Some((tok, src)),
                 ..
-            } => Box::new(
-                [LabeledSpan::new(
-                    Some(format!("found {tok:?}")),
-                    src.start,
-                    src.len(),
-                )]
-                .into_iter(),
-            ),
+            } => Box::new([labeled(format_args!("found {tok:?}"), src)].into_iter()),
             ParseErrorKind::Unexpected { got: None, .. } => {
-                Box::new([LabeledSpan::new(None, self.src.len(), 0)].into_iter())
+                Box::new([unlabeled(self.src.len()..0)].into_iter())
             }
             ParseErrorKind::InvalidEscline { start, got } => Box::new(
                 [
-                    LabeledSpan::new(Some("line continuation starts here".into()), *start, 1),
+                    labeled("line continuation starts here", start..start + 1),
                     if let Some((tok, range)) = got {
-                        LabeledSpan::new(
-                            Some(format!("unexpected {tok:?}")),
-                            range.start,
-                            range.len(),
-                        )
+                        labeled(format_args!("unexpected {tok:?}"), range)
                     } else {
-                        LabeledSpan::new(Some("unexpected end of file".into()), self.src.len(), 0)
+                        labeled("unexpected end of file", self.src.len()..0)
                     },
                 ]
                 .into_iter(),
             ),
-            ParseErrorKind::UnsupportedNumber { src, .. } => {
-                Box::new([LabeledSpan::new(None, src.start, src.len())].into_iter())
+            ParseErrorKind::UnsupportedNumber { src, .. } => Box::new([unlabeled(src)].into_iter()),
+            ParseErrorKind::BadPropertyName { name, eq } => {
+                Box::new([unlabeled(name), labeled("for this property", eq..eq + 1)].into_iter())
             }
-            ParseErrorKind::BadPropertyName { name, eq } => Box::new(
-                [
-                    LabeledSpan::new(None, name.start, name.len()),
-                    LabeledSpan::new(Some("for this property".into()), *eq, 1),
-                ]
-                .into_iter(),
-            ),
-            ParseErrorKind::UnquotedValue { src } => {
-                Box::new([LabeledSpan::new(None, src.start, src.len())].into_iter())
-            }
+            ParseErrorKind::UnquotedValue { src } => Box::new([unlabeled(src)].into_iter()),
             ParseErrorKind::WhitespaceInProperty { pre, post, .. } => Box::new(
-                pre.as_ref()
-                    .map(|range| LabeledSpan::new(None, range.start, range.len()))
+                [pre.map(unlabeled), post.map(unlabeled)]
                     .into_iter()
-                    .chain(
-                        post.as_ref()
-                            .map(|range| LabeledSpan::new(None, range.start, range.len())),
-                    ),
+                    .flatten(),
             ),
             ParseErrorKind::WhitespaceInType { src }
-            | ParseErrorKind::WhitespaceAfterType { src } => {
-                Box::new([LabeledSpan::new(None, src.start, src.len())].into_iter())
-            }
+            | ParseErrorKind::WhitespaceAfterType { src } => Box::new([unlabeled(src)].into_iter()),
             ParseErrorKind::UnclosedTypeAnnotation { open, close } => Box::new(
                 [
-                    LabeledSpan::new(Some("opened here".into()), open.start, open.len()),
-                    LabeledSpan::new(Some("close expected here".into()), *close, 0),
+                    labeled("opened here", open),
+                    labeled("close expected here", close..0),
                 ]
                 .into_iter(),
             ),
-            ParseErrorKind::BareValue { src } => {
-                Box::new([LabeledSpan::new(None, src.start, src.len())].into_iter())
-            }
-            ParseErrorKind::MissingSpace { pos } => {
-                Box::new([LabeledSpan::new(Some("add a space here".into()), *pos, 0)].into_iter())
-            }
+            ParseErrorKind::BareValue { src } => Box::new([unlabeled(src)].into_iter()),
+            ParseErrorKind::MissingSpace { entry, is_property } => Box::new(
+                [
+                    labeled("add a space here", entry.start..0),
+                    labeled(
+                        format_args!(
+                            "before this {}",
+                            if is_property { "property" } else { "argument" }
+                        ),
+                        entry.start + 1..entry.end,
+                    ),
+                ]
+                .into_iter(),
+            ),
         })
     }
 }

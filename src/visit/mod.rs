@@ -1,15 +1,11 @@
 // TODO: allow parsing recovery after the first error?
 
-pub(crate) use self::{
-    helpers::{
-        ArgumentVisitor, ChildrenVisitor, NodeVisitor, PropertyVisitor, VisitTrivia,
-        VisitTypeAnnotation, VisitValue,
-    },
-    slashdash::{VisitChildrenSlashdash, VisitNodeSlashdash},
+pub(crate) use self::helpers::{
+    ArgumentVisitor, ChildrenVisitor, NodeVisitor, PropertyVisitor, VisitTrivia,
+    VisitTypeAnnotation, VisitValue,
 };
 
 mod helpers;
-mod slashdash;
 
 pub trait VisitDocument<'kdl>: VisitChildren<'kdl> {
     type Output;

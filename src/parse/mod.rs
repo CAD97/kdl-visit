@@ -19,6 +19,7 @@ mod expected;
 mod lexer;
 mod visit;
 
+#[allow(clippy::needless_lifetimes)] // for clarity
 pub fn validate_kdl_string<'kdl>(kdl: &'kdl str) -> Result<(), ParseError<'kdl>> {
     visit_kdl_string(kdl, ())
 }
@@ -54,7 +55,7 @@ fn visit_children<'kdl>(
     visitor: &mut impl VisitChildren<'kdl>,
 ) -> Result<(), ParseErrorKind> {
     loop {
-        visit_linespace_trivia(lexer, ChildrenVisitor::ref_cast_mut(visitor));
+        visit_linespace_trivia(lexer, ChildrenVisitor::ref_cast_mut(visitor))?;
         if !try_visit_child(lexer, visitor)? {
             break;
         }
@@ -63,11 +64,31 @@ fn visit_children<'kdl>(
     Ok(())
 }
 
-fn visit_linespace_trivia<'kdl>(lexer: &mut Lexer<'kdl>, visitor: &mut impl VisitTrivia<'kdl>) {
-    while let Some(Token::Newline | Token::Whitespace) = lexer.token1() {
-        visitor.visit_trivia(lexer.source1());
-        lexer.bump();
+fn visit_linespace_trivia<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitTrivia<'kdl>,
+) -> Result<bool, ParseErrorKind> {
+    let mut has_linespace = false;
+
+    loop {
+        match lexer.token1() {
+            Some(Token::Newline | Token::Whitespace) => {
+                visitor.visit_trivia(lexer.source1());
+                lexer.bump();
+            }
+            Some(Token::SlashDash) => {
+                visitor.visit_trivia(lexer.source1());
+                lexer.bump();
+                let slashdash_visitor = &mut visitor.only_trivia();
+                visit_nodespace_trivia(lexer, slashdash_visitor)?;
+                visit_node(lexer, slashdash_visitor)?;
+            }
+            _ => break,
+        }
+        has_linespace = true;
     }
+
+    Ok(has_linespace)
 }
 
 fn try_visit_child<'kdl>(
@@ -88,13 +109,6 @@ fn try_visit_child<'kdl>(
             visit_node(lexer, &mut node)?;
             visitor.finish_node(node);
         }
-        Some(Token::SlashDash) => {
-            visitor.visit_trivia(lexer.source1());
-            lexer.bump();
-            let slashdash_visitor = &mut visitor.visit_slashdash();
-            try_visit_nodespace_trivia(lexer, slashdash_visitor)?;
-            visit_node(lexer, slashdash_visitor)?;
-        }
         _ => return Ok(false),
     }
 
@@ -104,27 +118,31 @@ fn try_visit_child<'kdl>(
 fn visit_nodespace_trivia<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl VisitNode<'kdl>,
-) -> Result<(), ParseErrorKind> {
-    while try_visit_nodespace_trivia(lexer, visitor)? {}
-    Ok(())
-}
-
-fn try_visit_nodespace_trivia<'kdl>(
-    lexer: &mut Lexer<'kdl>,
-    visitor: &mut impl VisitNode<'kdl>,
 ) -> Result<bool, ParseErrorKind> {
-    match lexer.token1() {
-        Some(Token::Whitespace) => {
-            visitor.visit_trivia(lexer.source1());
-            lexer.bump();
+    let mut has_nodespace = false;
+
+    loop {
+        match lexer.token1() {
+            Some(Token::Whitespace) => {
+                visitor.visit_trivia(lexer.source1());
+                lexer.bump();
+            }
+            Some(Token::EscLine) => {
+                visit_escline_trivia(lexer, visitor)?;
+            }
+            Some(Token::SlashDash) => {
+                visitor.visit_trivia(lexer.source1());
+                lexer.bump();
+                let slashdash_visitor = &mut NodeVisitor::ref_cast_mut(visitor).only_trivia();
+                visit_nodespace_trivia(lexer, slashdash_visitor)?;
+                try_visit_node_entry(lexer, slashdash_visitor, true)?;
+            }
+            _ => break,
         }
-        Some(Token::EscLine) => {
-            visit_escline_trivia(lexer, visitor)?;
-        }
-        _ => return Ok(false),
+        has_nodespace = true;
     }
 
-    Ok(true)
+    Ok(has_nodespace)
 }
 
 fn visit_escline_trivia<'kdl>(
@@ -169,16 +187,16 @@ fn visit_node<'kdl>(
         visit_type_annotation(lexer, NodeVisitor::ref_cast_mut(visitor))?;
     }
 
-    match (lexer.token1(), lexer.token2()) {
-        (Some(tok), _) if tok.is_identifier() => {
+    match lexer.token1() {
+        Some(tok) if tok.is_identifier() => {
             visitor.visit_name(parse_identifier(lexer)?);
         }
-        (Some(Token::Whitespace), Some(Token::OpenBrace)) => {
+        Some(Token::Whitespace) => {
             // visit_node cannot be entered at Token::Whitespace;
             // thus we know this is after a type annotation.
             return Err(ParseErrorKind::WhitespaceAfterType { src: lexer.span1() });
         }
-        (Some(tok), _) if tok.is_value() => {
+        Some(tok) if tok.is_value() => {
             return Err(ParseErrorKind::BareValue { src: lexer.span1() });
         }
         _ => {
@@ -248,33 +266,9 @@ fn visit_node_entries<'kdl>(
     visitor: &mut impl VisitNode<'kdl>,
 ) -> Result<(), ParseErrorKind> {
     loop {
-        // Nodespace is required before arguments and properties, but only if
-        // they are not a slashdash and they are not preceeded by a slashdash.
-        // See kdl-org/kdl#284 for more information.
-        let required_space_location = match lexer.token1() {
-            Some(Token::Whitespace) => None,
-            Some(Token::SlashDash) => {
-                visitor.visit_trivia(lexer.source1());
-                lexer.bump();
-                let mut slashdash_visitor = visitor.visit_slashdash();
-                visit_nodespace_trivia(lexer, &mut slashdash_visitor)?;
-                try_visit_node_entry(lexer, &mut slashdash_visitor, None)?;
-                None
-            }
-            _ => Some(lexer.span1().start),
-        };
-
-        visit_nodespace_trivia(lexer, visitor)?;
-        while let Some(Token::SlashDash) = lexer.token1() {
-            visitor.visit_trivia(lexer.source1());
-            lexer.bump();
-            let mut slashdash_visitor = visitor.visit_slashdash();
-            visit_nodespace_trivia(lexer, &mut slashdash_visitor)?;
-            try_visit_node_entry(lexer, &mut slashdash_visitor, None)?;
-            visit_nodespace_trivia(lexer, visitor)?;
-        }
-
-        if !try_visit_node_entry(lexer, visitor, required_space_location)? {
+        // line-space is required before properties/arguments but not children.
+        let has_leading_nodespace = visit_nodespace_trivia(lexer, visitor)?;
+        if !try_visit_node_entry(lexer, visitor, has_leading_nodespace)? {
             break;
         }
     }
@@ -285,31 +279,36 @@ fn visit_node_entries<'kdl>(
 fn try_visit_node_entry<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl VisitNode<'kdl>,
-    required_space_location: Option<usize>,
+    has_leading_nodespace: bool,
 ) -> Result<bool, ParseErrorKind> {
-    // See note above in visit_node_entries.
-    let maybe_require_space = move || {
-        if let Some(required_space_location) = required_space_location {
-            Err(ParseErrorKind::MissingSpace {
-                pos: required_space_location,
-            })
-        } else {
-            Ok(())
-        }
-    };
+    macro_rules! requiring_leading_space {
+        ($visit:path, $is_property:expr) => {
+            if has_leading_nodespace {
+                $visit(lexer, visitor)
+            } else {
+                let start = lexer.span1().start;
+                let _ = $visit(lexer, &mut NodeVisitor::ref_cast_mut(visitor).only_trivia());
+                let end = lexer.span1().start;
+                Err(ParseErrorKind::MissingSpace {
+                    entry: start..end,
+                    is_property: $is_property,
+                })
+            }
+        };
+    }
 
     match lexer.token1() {
         Some(tok) if tok.is_identifier() => {
-            maybe_require_space()?;
-            visit_node_property(lexer, visitor)?;
+            requiring_leading_space!(
+                visit_node_property,
+                matches!(lexer.token2(), Some(Token::Equals))
+            )?;
         }
         Some(tok) if tok.is_value() => {
-            maybe_require_space()?;
-            visit_node_argument(lexer, visitor)?;
+            requiring_leading_space!(visit_node_argument, false)?;
         }
         Some(Token::OpenParen) => {
-            maybe_require_space()?;
-            visit_node_argument(lexer, visitor)?;
+            requiring_leading_space!(visit_node_argument, false)?;
         }
 
         Some(Token::OpenBrace) => {
