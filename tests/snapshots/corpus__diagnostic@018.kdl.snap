@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "1\n"
+---
+kdl::parse::bare_value
+
+  × values are not allowed without a containing node
+   ╭────
+ 1 │ 1
+   · ─
+   ╰────
+  help: add a node to contain this value
+

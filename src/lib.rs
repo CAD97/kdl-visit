@@ -12,9 +12,9 @@ mod visit;
 
 pub use kdl::{
     components::{
-        Document, Entry, Identifier, IdentifierKind, Node, Number, Radix, String,
+        Document, Entry, Identifier, IdentifierKind, Node, Number, NumberFormat, String,
         TryFromNumberError, Value,
     },
-    parse::{parse, ParseError},
+    parse::{visit_kdl_string, ParseError},
     visit::{VisitArgument, VisitChildren, VisitDocument, VisitNode, VisitProperty},
 };

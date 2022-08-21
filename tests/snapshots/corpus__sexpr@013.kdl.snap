@@ -1,0 +1,12 @@
+---
+source: tests/corpus.rs
+expression: "// This entire node and its children are all commented out.\n/-mynode \"foo\" key=1 {\n  a\n  b\n  c\n}\n\nmynode /-\"commented\" \"not commented\" /-key=\"value\" /-{\n  a\n  b\n}\n"
+---
+(document
+  (trivia "// This entire node and its children are all commented out." "\n" "/-" " " "\"foo\"" " " "key" "=" "1" " " "{" "\n" "  " "\n" "  " "\n" "  " "\n" "}" "\n\n")
+  (node
+    (name mynode)
+    (trivia " " "/-" "\"commented\"" " ")
+    (argument
+      (value "not commented"))
+    (trivia " " "/-" "key" "=" "\"value\"" " " "/-" "{" "\n" "  " "\n" "  " "\n" "}" "\n")))

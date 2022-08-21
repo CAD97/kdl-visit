@@ -1,15 +1,27 @@
-use kdl::visit::*;
+use {super::*, ref_cast::RefCast};
 
-pub(super) struct VisitSlashdash<'a, V: ?Sized>(Option<&'a mut V>);
-
-impl<'a, 'kdl, V: ?Sized> VisitSlashdash<'a, V>
-where
-    V: VisitChildren<'kdl>,
-{
-    pub(super) fn new(v: &'a mut V) -> Self {
-        Self(Some(v))
+pub(crate) trait VisitChildrenSlashdash<'kdl> {
+    fn visit_slashdash(&mut self) -> SlashdashVisitor<'_, 'kdl>;
+}
+impl<'kdl, V: VisitChildren<'kdl>> VisitChildrenSlashdash<'kdl> for V {
+    fn visit_slashdash(&mut self) -> SlashdashVisitor<'_, 'kdl> {
+        SlashdashVisitor(Some(ChildrenVisitor::ref_cast_mut(self)))
     }
+}
 
+pub(crate) trait VisitNodeSlashdash<'kdl> {
+    fn visit_slashdash(&mut self) -> SlashdashVisitor<'_, 'kdl>;
+}
+impl<'kdl, V: VisitNode<'kdl>> VisitNodeSlashdash<'kdl> for V {
+    fn visit_slashdash(&mut self) -> SlashdashVisitor<'_, 'kdl> {
+        SlashdashVisitor(Some(NodeVisitor::ref_cast_mut(self)))
+    }
+}
+
+/// This is &dyn to avoid monomorphizing VisitSlashDash<VisitSlashDash<⋯>>
+pub(crate) struct SlashdashVisitor<'a, 'kdl>(Option<&'a mut dyn VisitTrivia<'kdl>>);
+
+impl<'a, 'kdl> SlashdashVisitor<'a, 'kdl> {
     fn visit(&mut self, src: &'kdl str) {
         self.0
             .as_mut()
@@ -18,10 +30,7 @@ where
     }
 }
 
-impl<'kdl, V: ?Sized> VisitChildren<'kdl> for VisitSlashdash<'_, V>
-where
-    V: VisitChildren<'kdl>,
-{
+impl<'kdl> VisitChildren<'kdl> for SlashdashVisitor<'_, 'kdl> {
     type VisitNode = Self;
 
     fn visit_trivia(&mut self, src: &'kdl str) {
@@ -37,10 +46,7 @@ where
     }
 }
 
-impl<'kdl, V: ?Sized> VisitNode<'kdl> for VisitSlashdash<'_, V>
-where
-    V: VisitChildren<'kdl>,
-{
+impl<'kdl> VisitNode<'kdl> for SlashdashVisitor<'_, 'kdl> {
     type VisitArgument = Self;
     type VisitProperty = Self;
     type VisitChildren = Self;
@@ -82,10 +88,7 @@ where
     }
 }
 
-impl<'kdl, V: ?Sized> VisitArgument<'kdl> for VisitSlashdash<'_, V>
-where
-    V: VisitChildren<'kdl>,
-{
+impl<'kdl> VisitArgument<'kdl> for SlashdashVisitor<'_, 'kdl> {
     fn visit_trivia(&mut self, src: &'kdl str) {
         self.visit(src)
     }
@@ -99,10 +102,7 @@ where
     }
 }
 
-impl<'kdl, V: ?Sized> VisitProperty<'kdl> for VisitSlashdash<'_, V>
-where
-    V: VisitChildren<'kdl>,
-{
+impl<'kdl> VisitProperty<'kdl> for SlashdashVisitor<'_, 'kdl> {
     fn visit_trivia(&mut self, src: &'kdl str) {
         self.visit(src)
     }

@@ -1,0 +1,11 @@
+---
+source: tests/corpus.rs
+expression: "node{}\n"
+---
+(document
+  (node
+    (name node)
+    (trivia "{")
+    (children)
+    (trivia "}"))
+  (trivia "\n"))

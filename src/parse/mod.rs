@@ -3,460 +3,492 @@ use {
     self::{
         error::ParseErrorKind,
         lexer::{Lexer, Token},
-        slashdash::VisitSlashdash,
     },
-    core::str::FromStr,
+    core::{ops::Range, str::FromStr},
     kdl::{
         components::*,
         utils::{locate, unescape},
         visit::*,
     },
+    ref_cast::RefCast,
     rust_decimal::Decimal,
 };
 
 mod error;
+mod expected;
 mod lexer;
-mod slashdash;
 mod visit;
 
-pub fn parse<'kdl, V: VisitDocument<'kdl>>(
+pub fn visit_kdl_string<'kdl, V: VisitDocument<'kdl>>(
     kdl: &'kdl str,
     mut visitor: V,
 ) -> Result<V::Output, ParseError<'kdl>> {
     let mut lexer = Lexer::new(kdl);
-    parse_document(&mut lexer, &mut visitor, true).map_err(|kind| ParseError {
+    visit_document(&mut lexer, &mut visitor).map_err(|kind| ParseError {
         src: kdl.into(),
         kind,
     })?;
     Ok(visitor.finish())
 }
 
-fn parse_document<'kdl>(
+fn visit_document<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl VisitChildren<'kdl>,
-    root: bool,
+) -> Result<(), ParseErrorKind> {
+    visit_children(lexer, visitor)?;
+    match lexer.peek1() {
+        None => Ok(()),
+        got => Err(ParseErrorKind::Unexpected {
+            got,
+            expected: expected::a_node_or_eof,
+        }),
+    }
+}
+
+fn visit_children<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitChildren<'kdl>,
 ) -> Result<(), ParseErrorKind> {
     loop {
-        #[allow(clippy::never_loop)]
-        loop {
-            while let Some((Token::Newline | Token::Whitespace, range)) = lexer.peek1() {
-                visitor.visit_trivia(lexer.source(range));
-                lexer.bump();
-            }
-            if let Some((Token::SlashDash, range)) = lexer.peek1() {
-                visitor.visit_trivia(lexer.source(range.clone()));
-                lexer.bump();
-                let trivia_visitor = &mut VisitSlashdash::new(visitor);
-                visit_nodespace_trivia(lexer, trivia_visitor)?;
-                // parse_node(lexer, trivia_visitor)?;
-                // continue;
-                return Err(ParseErrorKind::Unexpected {
-                    got: Some((Token::SlashDash, range)),
-                    expected: "slashdash to be implemented",
-                });
-            } else {
-                break;
-            }
-        }
-        match lexer.peek1() {
-            None => return Ok(()),
-            Some((Token::CloseBrace, _)) if !root => return Ok(()),
-            Some((tok, _)) if tok.is_identifier() => {
-                let mut visit_node = visitor.visit_node();
-                parse_node(lexer, &mut visit_node)?;
-                visitor.finish_node(visit_node);
-            }
-            Some((Token::OpenParen, _)) => {
-                let mut visit_node = visitor.visit_node();
-                parse_node(lexer, &mut visit_node)?;
-                visitor.finish_node(visit_node);
-            }
-            got => {
-                return Err(ParseErrorKind::Unexpected {
-                    got,
-                    expected: if root {
-                        "a node or end of file"
-                    } else {
-                        "a node or close curly brace"
-                    },
-                });
-            }
+        visit_linespace_trivia(lexer, ChildrenVisitor::ref_cast_mut(visitor));
+        if !try_visit_child(lexer, visitor)? {
+            break;
         }
     }
+
+    Ok(())
+}
+
+fn visit_linespace_trivia<'kdl>(lexer: &mut Lexer<'kdl>, visitor: &mut impl VisitTrivia<'kdl>) {
+    while let Some(Token::Newline | Token::Whitespace) = lexer.token1() {
+        visitor.visit_trivia(lexer.source1());
+        lexer.bump();
+    }
+}
+
+fn try_visit_child<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitChildren<'kdl>,
+) -> Result<bool, ParseErrorKind> {
+    match lexer.token1() {
+        Some(tok) if tok.is_identifier() => {
+            let mut node_visitor = visitor.visit_node();
+            visit_node(lexer, &mut node_visitor)?;
+            visitor.finish_node(node_visitor);
+        }
+        Some(tok) if tok.is_value() => {
+            return Err(ParseErrorKind::BareValue { src: lexer.span1() });
+        }
+        Some(Token::OpenParen) => {
+            let mut node = visitor.visit_node();
+            visit_node(lexer, &mut node)?;
+            visitor.finish_node(node);
+        }
+        Some(Token::SlashDash) => {
+            visitor.visit_trivia(lexer.source1());
+            lexer.bump();
+            let slashdash_visitor = &mut visitor.visit_slashdash();
+            try_visit_nodespace_trivia(lexer, slashdash_visitor)?;
+            visit_node(lexer, slashdash_visitor)?;
+        }
+        _ => return Ok(false),
+    }
+
+    Ok(true)
 }
 
 fn visit_nodespace_trivia<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl VisitNode<'kdl>,
 ) -> Result<(), ParseErrorKind> {
-    loop {
-        if let Some((Token::Whitespace, range)) = lexer.peek1() {
-            visitor.visit_trivia(lexer.source(range));
-            lexer.bump();
-            continue;
-        }
-        if let Some((Token::EscLine, range)) = lexer.peek1() {
-            let start = range.start;
-            visitor.visit_trivia(lexer.source(range));
-            lexer.bump();
-            loop {
-                match lexer.peek1() {
-                    Some((Token::Newline, range)) => {
-                        visitor.visit_trivia(lexer.source(range));
-                        lexer.bump();
-                        break;
-                    }
-                    Some((Token::Whitespace, range)) => {
-                        visitor.visit_trivia(lexer.source(range));
-                        lexer.bump();
-                    }
-                    got => return Err(ParseErrorKind::InvalidEscline { start, got }),
-                }
-            }
-            continue;
-        }
-        return Ok(());
-    }
-}
-
-enum VisitTypeAnnotation<'a, N, A, P> {
-    Node(&'a mut N),
-    Argument(&'a mut A),
-    Property(&'a mut P),
-}
-
-type Vta<'a, N, A, P> = VisitTypeAnnotation<'a, N, A, P>;
-
-impl<'a, N> Vta<'a, N, (), ()> {
-    fn node(n: &'a mut N) -> Self {
-        Self::Node(n)
-    }
-}
-
-impl<'a, A> Vta<'a, (), A, ()> {
-    fn argument(a: &'a mut A) -> Self {
-        Self::Argument(a)
-    }
-}
-
-impl<'a, P> Vta<'a, (), (), P> {
-    fn property(p: &'a mut P) -> Self {
-        Self::Property(p)
-    }
-}
-
-impl<'kdl, N, A, P> Vta<'_, N, A, P>
-where
-    N: VisitNode<'kdl>,
-    A: VisitArgument<'kdl>,
-    P: VisitProperty<'kdl>,
-{
-    fn visit_trivia(&mut self, trivia: &'kdl str) {
-        match self {
-            Self::Node(node) => node.visit_trivia(trivia),
-            Self::Argument(arg) => arg.visit_trivia(trivia),
-            Self::Property(prop) => prop.visit_trivia(trivia),
-        }
-    }
-
-    fn visit_type(&mut self, annotation: kdl::Identifier<'kdl>) {
-        match self {
-            Self::Node(node) => node.visit_type(annotation),
-            Self::Argument(arg) => arg.visit_type(annotation),
-            Self::Property(prop) => prop.visit_type(annotation),
-        }
-    }
-}
-
-fn parse_type_annotation<'kdl, N, A, P>(
-    lexer: &mut Lexer<'kdl>,
-    mut visitor: Vta<'_, N, A, P>,
-) -> Result<(), ParseErrorKind>
-where
-    N: VisitNode<'kdl>,
-    A: VisitArgument<'kdl>,
-    P: VisitProperty<'kdl>,
-{
-    if let Some((Token::OpenParen, open)) = lexer.peek1() {
-        visitor.visit_trivia(lexer.source(open.clone()));
-        lexer.bump();
-        let id_end = match lexer.peek1() {
-            Some((tok, id)) if tok.is_identifier() => {
-                visitor.visit_type(parse_identifier(lexer)?);
-                id.end
-            }
-            got => {
-                return Err(ParseErrorKind::Unexpected {
-                    got,
-                    expected: "a type identifier",
-                })
-            }
-        };
-        match lexer.peek1() {
-            Some((Token::CloseParen, range)) => {
-                visitor.visit_trivia(lexer.source(range));
-                lexer.bump();
-            }
-            Some((Token::Whitespace, range))
-                if matches!(lexer.peek2(), Some((Token::Whitespace, _))) =>
-            {
-                return Err(ParseErrorKind::WhitespaceInType { src: range });
-            }
-            got => {
-                return Err(ParseErrorKind::UnclosedTypeAnnotation {
-                    open,
-                    close: got.map_or(id_end, |got| got.1.start),
-                })
-            }
-        }
-    } else {
-        unreachable!("parse_type_annotation should only be called when peeking an open paren");
-    }
+    while try_visit_nodespace_trivia(lexer, visitor)? {}
     Ok(())
 }
 
-fn parse_node<'kdl, V>(lexer: &mut Lexer<'kdl>, visitor: &mut V) -> Result<(), ParseErrorKind>
-where
-    V: VisitNode<'kdl>,
-{
-    // Type Annotation
-    if let Some((Token::OpenParen, _)) = lexer.peek1() {
-        parse_type_annotation(lexer, Vta::node(visitor))?;
+fn try_visit_nodespace_trivia<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+) -> Result<bool, ParseErrorKind> {
+    match lexer.token1() {
+        Some(Token::Whitespace) => {
+            visitor.visit_trivia(lexer.source1());
+            lexer.bump();
+        }
+        Some(Token::EscLine) => {
+            visit_escline_trivia(lexer, visitor)?;
+        }
+        _ => return Ok(false),
     }
 
-    // Name
-    match lexer.peek1() {
-        Some((tok, _)) if tok.is_identifier() => {
+    Ok(true)
+}
+
+fn visit_escline_trivia<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+) -> Result<(), ParseErrorKind> {
+    if let Some(Token::EscLine) = lexer.token1() {
+        let start = lexer.span1().start;
+        visitor.visit_trivia(lexer.source1());
+        lexer.bump();
+        loop {
+            match lexer.token1() {
+                Some(Token::Newline) => {
+                    visitor.visit_trivia(lexer.source1());
+                    lexer.bump();
+                    break;
+                }
+                Some(Token::Whitespace) => {
+                    visitor.visit_trivia(lexer.source1());
+                    lexer.bump();
+                }
+                _ => {
+                    return Err(ParseErrorKind::InvalidEscline {
+                        start,
+                        got: lexer.peek1(),
+                    });
+                }
+            }
+        }
+    } else {
+        unreachable!("expected escline, got {:?}", lexer.peek1().map(|tok| tok.0))
+    }
+
+    Ok(())
+}
+
+fn visit_node<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+) -> Result<(), ParseErrorKind> {
+    if let Some(Token::OpenParen) = lexer.token1() {
+        visit_type_annotation(lexer, NodeVisitor::ref_cast_mut(visitor))?;
+    }
+
+    match (lexer.token1(), lexer.token2()) {
+        (Some(tok), _) if tok.is_identifier() => {
             visitor.visit_name(parse_identifier(lexer)?);
         }
-        Some((Token::Whitespace, range))
-            if matches!(lexer.peek2(), Some((Token::OpenBrace, _))) =>
-        {
-            // NB: parse_node cannot be entered at Token::Whitespace;
+        (Some(Token::Whitespace), Some(Token::OpenBrace)) => {
+            // visit_node cannot be entered at Token::Whitespace;
             // thus we know this is after a type annotation.
-            return Err(ParseErrorKind::WhitespaceAfterType { src: range });
+            return Err(ParseErrorKind::WhitespaceAfterType { src: lexer.span1() });
         }
-        got => {
+        (Some(tok), _) if tok.is_value() => {
+            return Err(ParseErrorKind::BareValue { src: lexer.span1() });
+        }
+        _ => {
             return Err(ParseErrorKind::Unexpected {
-                got,
-                expected: "a node name",
+                got: lexer.peek1(),
+                expected: expected::a_node_name,
             });
         }
     }
 
-    loop {
-        visit_nodespace_trivia(lexer, visitor)?;
-        match lexer.peek1() {
-            // Property or Argument
-            Some((name_token, name_range)) if name_token.is_identifier() => {
-                let name = parse_identifier(lexer)?;
-                match lexer.peek1() {
-                    // Property
-                    Some((Token::Equals, equals_range)) => {
-                        lexer.bump();
-                        let mut visit_property = visitor.visit_property();
-                        visit_property.visit_name(name);
-                        visit_property.visit_trivia(lexer.source(equals_range));
+    // Normally, we might call [try_]visit_nodespace_trivia here, but we need to
+    // handle leading space inside visit_node_entries in order to handle exactly
+    // when leading whitespace (isn't) required. See below and kdl-org/kdl#284.
+    visit_node_entries(lexer, visitor)?;
 
-                        match lexer.peek1() {
-                            // Invalid whitespace in property
-                            Some((Token::Whitespace, post_ws)) if matches!(lexer.peek2(), Some((tok, _)) if tok.is_value()) =>
-                            {
-                                return Err(ParseErrorKind::WhitespaceInProperty {
-                                    pre: None,
-                                    post: Some(post_ws),
-                                });
-                            }
-                            // Valid property value
-                            Some((tok, _)) if tok.is_value() => {
-                                visit_property.visit_value(parse_value(lexer)?);
-                                visitor.finish_property(visit_property);
-                            }
-                            // Type Annotation
-                            Some((Token::OpenParen, _)) => {
-                                parse_type_annotation(lexer, Vta::property(&mut visit_property))?;
-                                match lexer.peek1() {
-                                    // Valid property value
-                                    Some((tok, _)) if tok.is_value() => {
-                                        visit_property.visit_value(parse_value(lexer)?);
-                                        visitor.finish_property(visit_property);
-                                    }
-                                    // Invalid whitespace in property
-                                    Some((Token::Whitespace, post_ws)) if matches!(lexer.peek2(), Some((tok, _)) if tok.is_value()) =>
-                                    {
-                                        return Err(ParseErrorKind::WhitespaceInProperty {
-                                            pre: None,
-                                            post: Some(post_ws),
-                                        });
-                                    }
-                                    // Unquoted string value?
-                                    Some((Token::BareIdentifier, range)) => {
-                                        return Err(ParseErrorKind::UnquotedValue { src: range });
-                                    }
-                                    // Other parser error
-                                    got => {
-                                        return Err(ParseErrorKind::Unexpected {
-                                            got,
-                                            expected: "a property value",
-                                        });
-                                    }
-                                }
-                            }
-                            // Unquoted string value?
-                            Some((Token::BareIdentifier, range)) => {
-                                return Err(ParseErrorKind::UnquotedValue { src: range });
-                            }
-                            // Other parser error
-                            got => {
-                                return Err(ParseErrorKind::Unexpected {
-                                    got,
-                                    expected: "a property value",
-                                });
-                            }
-                        }
-                    }
+    Ok(())
+}
 
-                    // Invalid whitespace in property
-                    Some((Token::Whitespace, pre_ws))
-                        if matches!(lexer.peek2(), Some((Token::Equals, _))) =>
-                    {
-                        lexer.bump();
-                        lexer.bump();
-                        let post_ws = match lexer.peek1() {
-                            Some((Token::Whitespace, post_ws)) => Some(post_ws),
-                            _ => None,
-                        };
-                        return Err(ParseErrorKind::WhitespaceInProperty {
-                            pre: Some(pre_ws),
-                            post: post_ws,
-                        });
-                    }
+fn visit_type_annotation<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitTypeAnnotation<'kdl>,
+) -> Result<(), ParseErrorKind> {
+    if let Some(Token::OpenParen) = lexer.token1() {
+        let open = lexer.span1();
+        visitor.visit_trivia(lexer.source1());
+        lexer.bump();
 
-                    // Argument
-                    _ => match String::try_from(name) {
-                        Ok(value) => {
-                            let mut visit_argument = visitor.visit_argument();
-                            visit_argument.visit_value(value.into());
-                            visitor.finish_argument(visit_argument);
-                        }
-                        Err(_) => {
-                            return Err(ParseErrorKind::UnquotedValue { src: name_range });
-                        }
-                    },
-                }
+        match lexer.token1() {
+            Some(tok) if tok.is_identifier() => {
+                visitor.visit_type(parse_identifier(lexer)?);
             }
-
-            // Argument
-            Some((arg_token, range)) if arg_token.is_value() => {
-                let value = parse_number(lexer)?;
-                let mut visit_argument = visitor.visit_argument();
-                visit_argument.visit_value(value.into());
-                visitor.finish_argument(visit_argument);
-
-                // If this looks like an invalid property name, emit a nice error
-                match [lexer.peek1(), lexer.peek2()] {
-                    [Some((Token::Equals, eq)), _]
-                    | [Some((Token::Whitespace, _)), Some((Token::Equals, eq))] => {
-                        return Err(ParseErrorKind::BadPropertyName {
-                            name: range,
-                            eq: eq.start,
-                        })
-                    }
-                    _ => (),
-                }
-            }
-
-            // Type Annotation
-            Some((Token::OpenParen, _)) => {
-                let mut visit_argument = visitor.visit_argument();
-                parse_type_annotation(lexer, Vta::argument(&mut visit_argument))?;
-                match lexer.peek1() {
-                    // Valid argument value
-                    Some((tok, _)) if tok.is_value() => {
-                        visit_argument.visit_value(parse_value(lexer)?);
-                        visitor.finish_argument(visit_argument);
-                    }
-                    // Invalid whitespace in argument
-                    Some((Token::Whitespace, post_ws)) if matches!(lexer.peek2(), Some((tok, _)) if tok.is_value()) =>
-                    {
-                        return Err(ParseErrorKind::WhitespaceInProperty {
-                            pre: None,
-                            post: Some(post_ws),
-                        });
-                    }
-                    // Unquoted string value?
-                    Some((Token::BareIdentifier, range)) => {
-                        return Err(ParseErrorKind::UnquotedValue { src: range });
-                    }
-                    // Other parser error
-                    got => {
-                        return Err(ParseErrorKind::Unexpected {
-                            got,
-                            expected: "an argument value",
-                        });
-                    }
-                }
-            }
-
-            // Children Block
-            Some((Token::OpenBrace, range)) => {
-                let src = lexer.source(range.clone());
-                visitor.visit_trivia(src);
-                lexer.bump();
-
-                let mut visit_children = visitor.visit_children();
-                visit_children.visit_trivia(lexer.source(range));
-                parse_document(lexer, &mut visit_children, false)?;
-                visitor.finish_children(visit_children);
-
-                match lexer.peek1() {
-                    Some((Token::CloseBrace, range)) => {
-                        let src = lexer.source(range);
-                        visitor.visit_trivia(src);
-                        lexer.bump();
-                    }
-                    None => {
-                        return Err(ParseErrorKind::Unexpected {
-                            got: None,
-                            expected: "a closing brace",
-                        });
-                    }
-                    _ => {
-                        unreachable!("parse_document should have only ended at EOF or a CloseBrace")
-                    }
-                }
-                break;
-            }
-
-            // End of node
-            Some((Token::Newline | Token::Semicolon, range)) => {
-                visitor.visit_trivia(lexer.source(range));
-                lexer.bump();
-                break;
-            }
-
-            Some((Token::Whitespace | Token::EscLine, _)) => {
-                unreachable!("internal node trivia should have been consumed")
-            }
-
-            // Parse error
-            got => {
+            _ => {
                 return Err(ParseErrorKind::Unexpected {
-                    got,
-                    expected: "a node's property, argument, or children block",
-                });
+                    got: lexer.peek1(),
+                    expected: expected::a_type_name,
+                })
             }
+        };
+
+        match (lexer.token1(), lexer.token2()) {
+            (Some(Token::CloseParen), _) => {
+                visitor.visit_trivia(lexer.source1());
+                lexer.bump();
+            }
+            (Some(Token::Whitespace), Some(Token::CloseParen)) => {
+                return Err(ParseErrorKind::WhitespaceInType { src: lexer.span1() });
+            }
+            _ => {
+                return Err(ParseErrorKind::UnclosedTypeAnnotation {
+                    open,
+                    close: lexer.span1().start,
+                })
+            }
+        }
+    } else {
+        unreachable!(
+            "expected (type-annotation), got {:?}",
+            lexer.peek1().map(|tok| tok.0)
+        );
+    }
+
+    Ok(())
+}
+
+fn visit_node_entries<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+) -> Result<(), ParseErrorKind> {
+    loop {
+        // Nodespace is required before arguments and properties, but only if
+        // they are not a slashdash and they are not preceeded by a slashdash.
+        // See kdl-org/kdl#284 for more information.
+        let required_space_location = match lexer.token1() {
+            Some(Token::Whitespace) => None,
+            Some(Token::SlashDash) => {
+                visitor.visit_trivia(lexer.source1());
+                lexer.bump();
+                let mut slashdash_visitor = visitor.visit_slashdash();
+                visit_nodespace_trivia(lexer, &mut slashdash_visitor)?;
+                try_visit_node_entry(lexer, &mut slashdash_visitor, None)?;
+                None
+            }
+            _ => Some(lexer.span1().start),
+        };
+
+        visit_nodespace_trivia(lexer, visitor)?;
+        while let Some(Token::SlashDash) = lexer.token1() {
+            visitor.visit_trivia(lexer.source1());
+            lexer.bump();
+            let mut slashdash_visitor = visitor.visit_slashdash();
+            visit_nodespace_trivia(lexer, &mut slashdash_visitor)?;
+            try_visit_node_entry(lexer, &mut slashdash_visitor, None)?;
+            visit_nodespace_trivia(lexer, visitor)?;
+        }
+
+        if !try_visit_node_entry(lexer, visitor, required_space_location)? {
+            break;
         }
     }
 
     Ok(())
 }
 
-fn parse_string<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<String<'kdl>, ParseErrorKind> {
-    match lexer.peek1() {
-        Some((Token::String, range)) => {
+fn try_visit_node_entry<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+    required_space_location: Option<usize>,
+) -> Result<bool, ParseErrorKind> {
+    // See note above in visit_node_entries.
+    let maybe_require_space = move || {
+        if let Some(required_space_location) = required_space_location {
+            Err(ParseErrorKind::MissingSpace {
+                pos: required_space_location,
+            })
+        } else {
+            Ok(())
+        }
+    };
+
+    match lexer.token1() {
+        Some(tok) if tok.is_identifier() => {
+            maybe_require_space()?;
+            visit_node_property(lexer, visitor)?;
+        }
+        Some(tok) if tok.is_value() => {
+            maybe_require_space()?;
+            visit_node_argument(lexer, visitor)?;
+        }
+        Some(Token::OpenParen) => {
+            maybe_require_space()?;
+            visit_node_argument(lexer, visitor)?;
+        }
+
+        Some(Token::OpenBrace) => {
+            visitor.visit_trivia(lexer.source1());
             lexer.bump();
-            let src = lexer.source(range);
+
+            let mut children_visitor = visitor.visit_children();
+            visit_children(lexer, &mut children_visitor)?;
+            visitor.finish_children(children_visitor);
+
+            match lexer.peek1() {
+                Some((Token::CloseBrace, range)) => {
+                    let src = lexer.source(range);
+                    visitor.visit_trivia(src);
+                    lexer.bump();
+                }
+                got => {
+                    return Err(ParseErrorKind::Unexpected {
+                        got,
+                        expected: expected::a_node_or_close_brace,
+                    });
+                }
+            }
+            return Ok(false);
+        }
+
+        Some(tok) if tok.is_node_terminator() => {
+            visitor.visit_trivia(lexer.source1());
+            lexer.bump();
+            return Ok(false);
+        }
+
+        _ => {
+            return Err(ParseErrorKind::Unexpected {
+                got: lexer.peek1(),
+                expected: expected::a_node_entry,
+            });
+        }
+    }
+
+    Ok(true)
+}
+
+fn visit_node_property<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+) -> Result<(), ParseErrorKind> {
+    let name_span = lexer.span1();
+    let name = parse_identifier(lexer)?;
+
+    match (lexer.token1(), lexer.token2()) {
+        (Some(Token::Whitespace), Some(Token::Equals)) => {
+            let pre_ws = lexer.span1();
+            lexer.bump();
+            lexer.bump();
+            return Err(ParseErrorKind::WhitespaceInProperty {
+                pre: Some(pre_ws),
+                post: match lexer.token1() {
+                    Some(Token::Whitespace) => Some(lexer.span1()),
+                    _ => None,
+                },
+            });
+        }
+
+        (Some(Token::Equals), _) => {
+            let mut property_visitor = visitor.visit_property();
+            property_visitor.visit_name(name);
+            property_visitor.visit_trivia(lexer.source1());
+            lexer.bump();
+
+            if let Some(Token::Whitespace) = lexer.token1() {
+                return Err(ParseErrorKind::WhitespaceInProperty {
+                    pre: None,
+                    post: Some(lexer.span1()),
+                });
+            }
+
+            if try_visit_value(lexer, PropertyVisitor::ref_cast_mut(&mut property_visitor))? {
+                visitor.finish_property(property_visitor);
+            } else {
+                return Err(ParseErrorKind::Unexpected {
+                    got: lexer.peek1(),
+                    expected: expected::a_value,
+                });
+            }
+        }
+
+        // It's not a property, it's an argument.
+        _ => match String::try_from(name) {
+            Ok(value) => {
+                let mut argument_visitor = visitor.visit_argument();
+                argument_visitor.visit_value(value.into());
+                visitor.finish_argument(argument_visitor);
+            }
+            Err(_) => {
+                return Err(ParseErrorKind::UnquotedValue { src: name_span });
+            }
+        },
+    }
+
+    Ok(())
+}
+
+fn visit_node_argument<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitNode<'kdl>,
+) -> Result<(), ParseErrorKind> {
+    match lexer.token1() {
+        Some(tok) if tok.is_identifier() => {
+            unreachable!("identifiers should be handled by visit_node_property");
+        }
+
+        Some(tok) if tok.is_number() => {
+            let name_span = lexer.span1();
+            let value = parse_number(lexer)?;
+            let mut argument_visitor = visitor.visit_argument();
+            argument_visitor.visit_value(value.into());
+            visitor.finish_argument(argument_visitor);
+
+            // If this looks like an invalid property name, emit a nice error
+            if let (Some(Token::Equals), _) | (Some(Token::Whitespace), Some(Token::Equals)) =
+                (lexer.token1(), lexer.token1())
+            {
+                return Err(ParseErrorKind::BadPropertyName {
+                    name: name_span,
+                    eq: lexer.span1().start,
+                });
+            }
+        }
+
+        Some(Token::OpenParen) => {
+            let mut argument_visitor = visitor.visit_argument();
+            try_visit_value(lexer, ArgumentVisitor::ref_cast_mut(&mut argument_visitor))?;
+            visitor.finish_argument(argument_visitor);
+        }
+
+        _ => {
+            unreachable!("expected (type-annotated)value, got {:?}", lexer.token1());
+        }
+    }
+
+    Ok(())
+}
+
+fn try_visit_value<'kdl>(
+    lexer: &mut Lexer<'kdl>,
+    visitor: &mut impl VisitValue<'kdl>,
+) -> Result<bool, ParseErrorKind> {
+    match lexer.token1() {
+        Some(tok) if tok.is_value() => {
+            visitor.visit_value(parse_value(lexer)?);
+        }
+        Some(Token::OpenParen) => {
+            visit_type_annotation(lexer, visitor)?;
+            match lexer.token1() {
+                Some(tok) if tok.is_value() => {
+                    visitor.visit_value(parse_value(lexer)?);
+                }
+                Some(Token::Whitespace) => {
+                    return Err(ParseErrorKind::WhitespaceAfterType { src: lexer.span1() });
+                }
+                Some(Token::BareIdentifier) => {
+                    return Err(ParseErrorKind::UnquotedValue { src: lexer.span1() });
+                }
+                _ => {
+                    return Err(ParseErrorKind::Unexpected {
+                        got: lexer.peek1(),
+                        expected: expected::a_value,
+                    });
+                }
+            }
+        }
+        _ => return Ok(false),
+    }
+
+    Ok(true)
+}
+
+fn parse_string<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<String<'kdl>, ParseErrorKind> {
+    match lexer.token1() {
+        Some(Token::String) => {
+            let src = lexer.source1();
+            lexer.bump();
             Ok(String {
                 value: unescape(&src[1..src.len() - 1])
                     .map_err(|err| ParseErrorKind::InvalidEscape {
@@ -466,63 +498,66 @@ fn parse_string<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<String<'kdl>, ParseErro
                 repr: src.into(),
             })
         }
-        Some((Token::RawString, range)) => {
+        Some(Token::RawString) => {
+            let src = lexer.source1();
             lexer.bump();
-            let src = lexer.source(range);
             let inner = src[1..].trim_matches('#');
             Ok(String {
                 value: inner[1..inner.len() - 1].into(),
                 repr: src.into(),
             })
         }
-        got => unreachable!("expected string, got {:?}", got.map(|(t, _)| t)),
+        got => unreachable!("expected string, got {got:?}"),
     }
 }
 
 fn parse_identifier<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Identifier<'kdl>, ParseErrorKind> {
-    match lexer.peek1() {
-        Some((Token::BareIdentifier, range)) => {
+    match lexer.token1() {
+        Some(Token::BareIdentifier) => {
+            let src = lexer.source1();
             lexer.bump();
-            let src = lexer.source(range);
             Ok(Identifier {
                 value: src.into(),
                 repr: src.into(),
             })
         }
-        Some((Token::String | Token::RawString, _)) => Ok(parse_string(lexer)?.into()),
-        got => unreachable!("expected identifier, got {:?}", got.map(|(t, _)| t)),
+        Some(Token::String | Token::RawString) => Ok(parse_string(lexer)?.into()),
+        got => unreachable!("expected identifier, got {got:?}"),
     }
 }
 
 fn parse_number<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Number<'kdl>, ParseErrorKind> {
-    match lexer.peek1() {
+    match lexer.token1() {
         // common base-10 case gets an explicitly monomorphized codepath
-        Some((Token::DecimalFloat | Token::DecimalInt, range)) => {
+        Some(Token::Float10 | Token::Int10) => {
+            let src = lexer.source1();
+            let span = lexer.span1();
             lexer.bump();
-            let src = lexer.source(range.clone());
+            // TODO: handle exponential notation
             Ok(Number {
                 value: Decimal::from_str(src).map_err(|e| ParseErrorKind::UnsupportedNumber {
-                    src: range,
+                    src: span,
                     cause: e,
                 })?,
                 repr: src.into(),
             })
         }
-        Some((tok, range)) if tok.is_number() => {
+        Some(tok) if tok.is_number() => {
+            let src = lexer.source1();
+            let span = lexer.span1();
             lexer.bump();
             let radix = match tok {
-                Token::Binary => 2,
-                Token::Octal => 8,
-                Token::DecimalFloat | Token::DecimalInt => 10,
-                Token::Hex => 16,
+                Token::Int2 => 2,
+                Token::Int8 => 8,
+                Token::Float10 | Token::Int10 => 10,
+                Token::Int16 => 16,
                 _ => unreachable!(),
             };
-            let src = lexer.source(range.clone());
             let negative = src.starts_with('-');
             let src = src.trim_start_matches(['+', '-']);
             let value = Decimal::from_str_radix(&src[2..], radix).map_err(|e| {
                 ParseErrorKind::UnsupportedNumber {
-                    src: range,
+                    src: span,
                     cause: e,
                 }
             })?;
@@ -531,26 +566,26 @@ fn parse_number<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Number<'kdl>, ParseErro
                 repr: src.into(),
             })
         }
-        got => unreachable!("expected identifier, got {:?}", got.map(|(t, _)| t)),
+        got => unreachable!("expected identifier, got {got:?}"),
     }
 }
 
 fn parse_value<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Value<'kdl>, ParseErrorKind> {
-    match lexer.peek1() {
-        Some((tok, _)) if tok.is_string() => Ok(Value::String(parse_string(lexer)?)),
-        Some((tok, _)) if tok.is_number() => Ok(Value::Number(parse_number(lexer)?)),
-        Some((Token::True, _)) => {
+    match lexer.token1() {
+        Some(tok) if tok.is_string() => Ok(Value::String(parse_string(lexer)?)),
+        Some(tok) if tok.is_number() => Ok(Value::Number(parse_number(lexer)?)),
+        Some(Token::True) => {
             lexer.bump();
             Ok(Value::Boolean(true))
         }
-        Some((Token::False, _)) => {
+        Some(Token::False) => {
             lexer.bump();
             Ok(Value::Boolean(false))
         }
-        Some((Token::Null, _)) => {
+        Some(Token::Null) => {
             lexer.bump();
             Ok(Value::Null)
         }
-        got => unreachable!("expected value, got {:?}", got.map(|(t, _)| t)),
+        got => unreachable!("expected value, got {got:?}"),
     }
 }

@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "num 1.234e-42\n"
+---
+kdl::parse::unsupported_number
+
+  × unsupported number
+   ╭────
+ 1 │ num 1.234e-42
+   ·     ─────────
+   ╰────
+  help: Invalid decimal: unknown character
+

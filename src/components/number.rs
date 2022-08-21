@@ -1,5 +1,5 @@
 use {
-    super::{Number, NumberRepr, Radix, TryFromNumberError},
+    super::Number,
     alloc::{
         borrow::Cow,
         fmt,
@@ -9,8 +9,32 @@ use {
     rust_decimal::Decimal,
 };
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum NumberRepr<'kdl> {
+    Explicit(Cow<'kdl, str>),
+    Implicit(NumberFormat),
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum NumberFormat {
+    Binary,
+    Octal,
+    Decimal,
+    LowerExp,
+    UpperExp,
+    LowerHex,
+    UpperHex,
+}
+
+#[non_exhaustive]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TryFromNumberError {
+    #[doc(hidden)]
+    __Unknown,
+}
+
 impl<'kdl> Number<'kdl> {
-    pub fn new(value: impl Into<Self>, base: Radix) -> Self {
+    pub fn new(value: impl Into<Self>, base: NumberFormat) -> Self {
         Self {
             value: value.into().value,
             repr: NumberRepr::Implicit(base),
@@ -69,21 +93,23 @@ impl fmt::Display for Number<'_> {
         let Self { value, repr } = self;
         match repr {
             NumberRepr::Explicit(repr) => write!(f, "{repr}"),
-            NumberRepr::Implicit(Radix::Decimal) => write!(f, "{value}"),
-            NumberRepr::Implicit(Radix::Binary) => match WhicheverInt::try_from(*value) {
+            NumberRepr::Implicit(NumberFormat::Binary) => match WhicheverInt::try_from(*value) {
                 Ok(value) => write!(f, "0b{value:b}"),
                 Err(_) => write!(f, "{value}"),
             },
-            NumberRepr::Implicit(Radix::Octal) => match WhicheverInt::try_from(*value) {
+            NumberRepr::Implicit(NumberFormat::Octal) => match WhicheverInt::try_from(*value) {
                 Ok(value) => write!(f, "0o{value:o}"),
                 Err(_) => write!(f, "{value}"),
             },
-            NumberRepr::Implicit(Radix::LowerHex) => match WhicheverInt::try_from(*value) {
+            NumberRepr::Implicit(NumberFormat::Decimal) => write!(f, "{value}"),
+            NumberRepr::Implicit(NumberFormat::LowerExp) => write!(f, "{value:e}"),
+            NumberRepr::Implicit(NumberFormat::UpperExp) => write!(f, "{value:E}"),
+            NumberRepr::Implicit(NumberFormat::LowerHex) => match WhicheverInt::try_from(*value) {
                 Ok(value) => write!(f, "0x{value:x}"),
                 Err(_) => write!(f, "{value}"),
             },
-            NumberRepr::Implicit(Radix::UpperHex) => match WhicheverInt::try_from(*value) {
-                Ok(value) => write!(f, "0x{value:X}"),
+            NumberRepr::Implicit(NumberFormat::UpperHex) => match WhicheverInt::try_from(*value) {
+                Ok(value) => write!(f, "0x{value:x}"),
                 Err(_) => write!(f, "{value}"),
             },
         }
@@ -130,8 +156,8 @@ impl<'kdl> From<&'kdl str> for NumberRepr<'kdl> {
     }
 }
 
-impl From<Radix> for NumberRepr<'_> {
-    fn from(base: Radix) -> Self {
+impl From<NumberFormat> for NumberRepr<'_> {
+    fn from(base: NumberFormat) -> Self {
         NumberRepr::Implicit(base)
     }
 }
@@ -228,6 +254,28 @@ impl fmt::UpperHex for WhicheverInt {
             WhicheverInt::USize(value) => write!(f, "{value:X}"),
             WhicheverInt::I128(value) => write!(f, "{value:X}"),
             WhicheverInt::U128(value) => write!(f, "{value:X}"),
+        }
+    }
+}
+
+impl fmt::LowerExp for WhicheverInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WhicheverInt::ISize(value) => write!(f, "{value:e}"),
+            WhicheverInt::USize(value) => write!(f, "{value:e}"),
+            WhicheverInt::I128(value) => write!(f, "{value:e}"),
+            WhicheverInt::U128(value) => write!(f, "{value:e}"),
+        }
+    }
+}
+
+impl fmt::UpperExp for WhicheverInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            WhicheverInt::ISize(value) => write!(f, "{value:E}"),
+            WhicheverInt::USize(value) => write!(f, "{value:E}"),
+            WhicheverInt::I128(value) => write!(f, "{value:E}"),
+            WhicheverInt::U128(value) => write!(f, "{value:E}"),
         }
     }
 }

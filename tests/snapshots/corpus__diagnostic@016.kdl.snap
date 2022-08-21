@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "node(ty)1\n"
+---
+kdl::parse::node_entry_claustrophobia
+
+  × missing required whitespace
+   ╭────
+ 1 │ node(ty)1
+   ·     ▲
+   ·     ╰── add a space here
+   ╰────
+

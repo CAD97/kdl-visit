@@ -20,17 +20,13 @@ expression: "numbers (u8)10 (i32)20 myfloat=(f32)1.5 {\n  strings (uuid)\"123e45
     (trivia " ")
     (property
       (name myfloat)
-      (trivia "=")
-      (trivia "(")
+      (trivia "=" "(")
       (type f32)
       (trivia ")")
       (value 1.5))
-    (trivia " ")
-    (trivia "{")
+    (trivia " " "{")
     (children
-      (trivia "{")
-      (trivia "\n")
-      (trivia "  ")
+      (trivia "\n" "  ")
       (node
         (name strings)
         (trivia " ")
@@ -48,8 +44,7 @@ expression: "numbers (u8)10 (i32)20 myfloat=(f32)1.5 {\n  strings (uuid)\"123e45
         (trivia " ")
         (property
           (name filter)
-          (trivia "=")
-          (trivia "(")
+          (trivia "=" "(")
           (type regex)
           (trivia ")")
           (value r"$\d+"))

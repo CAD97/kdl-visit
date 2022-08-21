@@ -1,0 +1,11 @@
+---
+source: tests/corpus.rs
+expression: "node /-{} \"val\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " " "/-" "{" "}" " ")
+    (argument
+      (value "val"))
+    (trivia "\n")))

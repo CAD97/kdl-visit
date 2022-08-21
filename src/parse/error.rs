@@ -57,6 +57,12 @@ pub(super) enum ParseErrorKind {
         open: Range<usize>,
         close: usize,
     },
+    BareValue {
+        src: Range<usize>,
+    },
+    MissingSpace {
+        pos: usize,
+    },
 }
 
 impl ParseError<'_> {
@@ -105,6 +111,10 @@ impl fmt::Display for ParseError<'_> {
             ParseErrorKind::UnclosedTypeAnnotation { .. } => {
                 write!(f, "unclosed type annotation")
             }
+            ParseErrorKind::BareValue { .. } => {
+                write!(f, "values are not allowed without a containing node")
+            }
+            ParseErrorKind::MissingSpace { .. } => write!(f, "missing required whitespace"),
         }
     }
 }
@@ -123,6 +133,8 @@ impl Diagnostic for ParseError<'_> {
             | ParseErrorKind::WhitespaceInType { .. }
             | ParseErrorKind::WhitespaceAfterType { .. } => "kdl::parse::unexpected_whitespace",
             ParseErrorKind::UnclosedTypeAnnotation { .. } => "kdl::parse::unclosed_type",
+            ParseErrorKind::BareValue { .. } => "kdl::parse::bare_value",
+            ParseErrorKind::MissingSpace { .. } => "kdl::parse::node_entry_claustrophobia",
         }))
     }
 
@@ -152,6 +164,8 @@ impl Diagnostic for ParseError<'_> {
             | ParseErrorKind::WhitespaceInType { .. }
             | ParseErrorKind::WhitespaceAfterType { .. } => Box::new("remove this whitespace"),
             ParseErrorKind::UnclosedTypeAnnotation { .. } => Box::new("add a closing `)`"),
+            ParseErrorKind::BareValue { .. } => Box::new("add a node to contain this value"),
+            ParseErrorKind::MissingSpace { .. } => return None,
         })
     }
 
@@ -222,10 +236,16 @@ impl Diagnostic for ParseError<'_> {
             ParseErrorKind::UnclosedTypeAnnotation { open, close } => Box::new(
                 [
                     LabeledSpan::new(Some("opened here".into()), open.start, open.len()),
-                    LabeledSpan::new(Some("close expected here".into()), *close, 1),
+                    LabeledSpan::new(Some("close expected here".into()), *close, 0),
                 ]
                 .into_iter(),
             ),
+            ParseErrorKind::BareValue { src } => {
+                Box::new([LabeledSpan::new(None, src.start, src.len())].into_iter())
+            }
+            ParseErrorKind::MissingSpace { pos } => {
+                Box::new([LabeledSpan::new(Some("add a space here".into()), *pos, 0)].into_iter())
+            }
         })
     }
 }

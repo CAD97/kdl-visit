@@ -15,15 +15,15 @@ use {
 #[logos(subpattern single_line_comment = r#"//[^\r\n\u{85}\u{0C}\u{2028}\u{2029}]*"#)]
 pub(crate) enum Token {
     #[regex(r"(?&sign)?(?&integer)(?:\.(?&integer))?(?&exponent)?")]
-    DecimalFloat,
+    Float10,
     #[regex(r"(?&sign)?(?&integer)", priority = 2)]
-    DecimalInt,
+    Int10,
     #[regex(r"(?&sign)?0x(?&hex_digit)(?:(?&hex_digit)|_)*")]
-    Hex,
+    Int16,
     #[regex(r"(?&sign)?0o[0-7][0-7_]*")]
-    Octal,
+    Int8,
     #[regex(r"(?&sign)?0b[01][01_]*")]
-    Binary,
+    Int2,
 
     #[regex("\r")] // Carriage Return
     #[token("\n")] // Line Feed
@@ -149,19 +149,30 @@ impl Token {
     pub(crate) fn is_number(&self) -> bool {
         matches!(
             self,
-            Token::DecimalFloat | Token::DecimalInt | Token::Hex | Token::Octal | Token::Binary
+            Token::Float10 | Token::Int10 | Token::Int16 | Token::Int8 | Token::Int2
         )
     }
 
     pub(crate) fn is_value(&self) -> bool {
-        self.is_number()
-            || self.is_string()
-            || matches!(self, Token::True | Token::False | Token::Null)
+        matches!(
+            self,
+            Token::Null
+            // Boolean 
+            | Token::True | Token::False
+            // String
+            | Token::String | Token::RawString
+            // Number
+            | Token::Float10 | Token::Int10 | Token::Int16 | Token::Int8 | Token::Int2
+        )
+    }
+
+    pub(crate) fn is_node_terminator(&self) -> bool {
+        matches!(self, Token::Newline | Token::Semicolon)
     }
 }
 
-/// An LL(2) lexer which additionally collapses sequential Token::Whitespace and
-/// Token::Newline into a single token (using a 3rd lookahead slot).
+/// An LL(2) lexer which additionally collapses sequential Token::Whitespace
+/// and Token::Newline into a single token (using a 3rd lookahead slot).
 pub(crate) struct Lexer<'kdl> {
     lexer: logos::Lexer<'kdl, Token>,
     lookahead: [Option<(Token, Range<usize>)>; 4],
@@ -187,8 +198,40 @@ impl<'kdl> Lexer<'kdl> {
         self.lookahead[0].clone()
     }
 
+    pub fn token1(&self) -> Option<Token> {
+        self.peek1().map(|(token, _)| token)
+    }
+
+    pub fn span1(&self) -> Range<usize> {
+        self.peek1().map_or_else(
+            || self.source(..).len()..self.source(..).len(),
+            |(_, span)| span,
+        )
+    }
+
+    pub fn source1(&self) -> &'kdl str {
+        self.source(self.span1())
+    }
+
     pub fn peek2(&self) -> Option<(Token, Range<usize>)> {
         self.lookahead[1].clone()
+    }
+
+    pub fn token2(&self) -> Option<Token> {
+        self.peek2().map(|(token, _)| token)
+    }
+
+    #[allow(unused)] // TODO: delete if still unused
+    pub fn span2(&self) -> Range<usize> {
+        self.peek2().map_or_else(
+            || self.source(..).len()..self.source(..).len(),
+            |(_, span)| span,
+        )
+    }
+
+    #[allow(unused)] // TODO: delete if still unused
+    pub fn source2(&self) -> &'kdl str {
+        self.source(self.span2())
     }
 
     pub fn bump(&mut self) {
@@ -220,14 +263,5 @@ impl<'kdl> Lexer<'kdl> {
             }
             break;
         }
-    }
-}
-
-impl Iterator for Lexer<'_> {
-    type Item = (Token, Range<usize>);
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.lookahead[0].take();
-        self.bump();
-        item
     }
 }

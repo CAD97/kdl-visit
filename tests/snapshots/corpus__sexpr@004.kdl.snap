@@ -5,23 +5,17 @@ expression: "contents {\n  section \"First section\" {\n    paragraph \"This is 
 (document
   (node
     (name contents)
-    (trivia " ")
-    (trivia "{")
+    (trivia " " "{")
     (children
-      (trivia "{")
-      (trivia "\n")
-      (trivia "  ")
+      (trivia "\n" "  ")
       (node
         (name section)
         (trivia " ")
         (argument
           (value "First section"))
-        (trivia " ")
-        (trivia "{")
+        (trivia " " "{")
         (children
-          (trivia "{")
-          (trivia "\n")
-          (trivia "    ")
+          (trivia "\n" "    ")
           (node
             (name paragraph)
             (trivia " ")

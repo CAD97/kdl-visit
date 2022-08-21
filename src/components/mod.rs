@@ -1,6 +1,10 @@
-pub use self::{identifier::IdentifierKind, string::StringKind};
+pub use self::{
+    identifier::IdentifierKind,
+    number::{NumberFormat, TryFromNumberError},
+    string::StringKind,
+};
 use {
-    self::{identifier::IdentifierRepr, string::StringRepr},
+    self::{identifier::IdentifierRepr, number::NumberRepr, string::StringRepr},
     alloc::{borrow::Cow, vec::Vec},
     rust_decimal::Decimal,
 };
@@ -81,27 +85,5 @@ pub struct Number<'kdl> {
     pub(crate) repr: NumberRepr<'kdl>,
 }
 
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TryFromNumberError {
-    #[doc(hidden)]
-    __Unknown,
-}
-
 type Trivia<'kdl> = Option<Src<'kdl>>;
 type Src<'kdl> = Cow<'kdl, str>;
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum NumberRepr<'kdl> {
-    Explicit(Cow<'kdl, str>),
-    Implicit(Radix),
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Radix {
-    Binary,
-    Octal,
-    Decimal,
-    LowerHex,
-    UpperHex,
-}
