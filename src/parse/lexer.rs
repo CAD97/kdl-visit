@@ -175,23 +175,32 @@ impl Token {
 /// and Token::Newline into a single token (using a 3rd lookahead slot).
 pub(crate) struct Lexer<'kdl> {
     lexer: logos::Lexer<'kdl, Token>,
-    lookahead: [Option<(Token, Range<usize>)>; 4],
+    lookahead: [Option<(Token, Range<usize>)>; 3],
 }
 
+#[allow(unreachable_pub)]
 impl<'kdl> Lexer<'kdl> {
     pub fn new(kdl: &'kdl str) -> Self {
         let mut this = Self {
             lexer: Token::lexer(kdl),
-            lookahead: [None, None, None, None],
+            lookahead: [None, None, None],
         };
+        debug_assert!(this.peek1().is_none());
         this.bump();
+        debug_assert!(this.peek1().is_none());
         this.bump();
+        debug_assert!(this.peek1().is_none());
         this.bump();
+        debug_assert_eq!(kdl.is_empty(), this.peek1().is_none());
         this
     }
 
-    pub fn source(&self, index: impl SliceIndex<str, Output = str>) -> &'kdl str {
-        &self.lexer.source()[index]
+    pub fn source(&self) -> &'kdl str {
+        self.lexer.source()
+    }
+
+    fn slice(&self, index: impl SliceIndex<str, Output = str>) -> &'kdl str {
+        &self.source()[index]
     }
 
     pub fn peek1(&self) -> Option<(Token, Range<usize>)> {
@@ -204,34 +213,21 @@ impl<'kdl> Lexer<'kdl> {
 
     pub fn span1(&self) -> Range<usize> {
         self.peek1().map_or_else(
-            || self.source(..).len()..self.source(..).len(),
+            || self.source().len()..self.source().len(),
             |(_, span)| span,
         )
     }
 
-    pub fn source1(&self) -> &'kdl str {
-        self.source(self.span1())
+    pub fn slice1(&self) -> &'kdl str {
+        self.slice(self.span1())
     }
 
-    pub fn peek2(&self) -> Option<(Token, Range<usize>)> {
+    fn peek2(&self) -> Option<(Token, Range<usize>)> {
         self.lookahead[1].clone()
     }
 
     pub fn token2(&self) -> Option<Token> {
         self.peek2().map(|(token, _)| token)
-    }
-
-    #[allow(unused)] // TODO: delete if still unused
-    pub fn span2(&self) -> Range<usize> {
-        self.peek2().map_or_else(
-            || self.source(..).len()..self.source(..).len(),
-            |(_, span)| span,
-        )
-    }
-
-    #[allow(unused)] // TODO: delete if still unused
-    pub fn source2(&self) -> &'kdl str {
-        self.source(self.span2())
     }
 
     pub fn bump(&mut self) {

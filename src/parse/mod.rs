@@ -10,7 +10,6 @@ use {
         utils::{locate, unescape},
         visit::*,
     },
-    ref_cast::RefCast,
     rust_decimal::Decimal,
 };
 
@@ -55,7 +54,7 @@ fn visit_children<'kdl>(
     visitor: &mut impl VisitChildren<'kdl>,
 ) -> Result<(), ParseErrorKind> {
     loop {
-        visit_linespace_trivia(lexer, ChildrenVisitor::ref_cast_mut(visitor))?;
+        visit_linespace_trivia(lexer, visitor.opaque())?;
         if !try_visit_child(lexer, visitor)? {
             break;
         }
@@ -73,11 +72,11 @@ fn visit_linespace_trivia<'kdl>(
     loop {
         match lexer.token1() {
             Some(Token::Newline | Token::Whitespace) => {
-                visitor.visit_trivia(lexer.source1());
+                visitor.visit_trivia(lexer.slice1());
                 lexer.bump();
             }
             Some(Token::SlashDash) => {
-                visitor.visit_trivia(lexer.source1());
+                visitor.visit_trivia(lexer.slice1());
                 lexer.bump();
                 let slashdash_visitor = &mut visitor.only_trivia();
                 visit_nodespace_trivia(lexer, slashdash_visitor)?;
@@ -124,16 +123,16 @@ fn visit_nodespace_trivia<'kdl>(
     loop {
         match lexer.token1() {
             Some(Token::Whitespace) => {
-                visitor.visit_trivia(lexer.source1());
+                visitor.visit_trivia(lexer.slice1());
                 lexer.bump();
             }
             Some(Token::EscLine) => {
                 visit_escline_trivia(lexer, visitor)?;
             }
             Some(Token::SlashDash) => {
-                visitor.visit_trivia(lexer.source1());
+                visitor.visit_trivia(lexer.slice1());
                 lexer.bump();
-                let slashdash_visitor = &mut NodeVisitor::ref_cast_mut(visitor).only_trivia();
+                let slashdash_visitor = &mut visitor.only_trivia();
                 visit_nodespace_trivia(lexer, slashdash_visitor)?;
                 try_visit_node_entry(lexer, slashdash_visitor, true)?;
             }
@@ -151,17 +150,17 @@ fn visit_escline_trivia<'kdl>(
 ) -> Result<(), ParseErrorKind> {
     if let Some(Token::EscLine) = lexer.token1() {
         let start = lexer.span1().start;
-        visitor.visit_trivia(lexer.source1());
+        visitor.visit_trivia(lexer.slice1());
         lexer.bump();
         loop {
             match lexer.token1() {
                 Some(Token::Newline) => {
-                    visitor.visit_trivia(lexer.source1());
+                    visitor.visit_trivia(lexer.slice1());
                     lexer.bump();
                     break;
                 }
                 Some(Token::Whitespace) => {
-                    visitor.visit_trivia(lexer.source1());
+                    visitor.visit_trivia(lexer.slice1());
                     lexer.bump();
                 }
                 _ => {
@@ -183,8 +182,13 @@ fn visit_node<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl VisitNode<'kdl>,
 ) -> Result<(), ParseErrorKind> {
+    debug_assert!(!matches!(
+        lexer.token1(),
+        Some(Token::Whitespace | Token::Newline | Token::SlashDash)
+    ));
+
     if let Some(Token::OpenParen) = lexer.token1() {
-        visit_type_annotation(lexer, NodeVisitor::ref_cast_mut(visitor))?;
+        visit_type_annotation(lexer, visitor.opaque())?;
     }
 
     match lexer.token1() {
@@ -207,9 +211,6 @@ fn visit_node<'kdl>(
         }
     }
 
-    // Normally, we might call [try_]visit_nodespace_trivia here, but we need to
-    // handle leading space inside visit_node_entries in order to handle exactly
-    // when leading whitespace (isn't) required. See below and kdl-org/kdl#284.
     visit_node_entries(lexer, visitor)?;
 
     Ok(())
@@ -221,7 +222,7 @@ fn visit_type_annotation<'kdl>(
 ) -> Result<(), ParseErrorKind> {
     if let Some(Token::OpenParen) = lexer.token1() {
         let open = lexer.span1();
-        visitor.visit_trivia(lexer.source1());
+        visitor.visit_trivia(lexer.slice1());
         lexer.bump();
 
         match lexer.token1() {
@@ -238,7 +239,7 @@ fn visit_type_annotation<'kdl>(
 
         match (lexer.token1(), lexer.token2()) {
             (Some(Token::CloseParen), _) => {
-                visitor.visit_trivia(lexer.source1());
+                visitor.visit_trivia(lexer.slice1());
                 lexer.bump();
             }
             (Some(Token::Whitespace), Some(Token::CloseParen)) => {
@@ -287,7 +288,7 @@ fn try_visit_node_entry<'kdl>(
                 $visit(lexer, visitor)
             } else {
                 let start = lexer.span1().start;
-                let _ = $visit(lexer, &mut NodeVisitor::ref_cast_mut(visitor).only_trivia());
+                let _ = $visit(lexer, &mut visitor.only_trivia());
                 let end = lexer.span1().start;
                 Err(ParseErrorKind::MissingSpace {
                     entry: start..end,
@@ -312,22 +313,21 @@ fn try_visit_node_entry<'kdl>(
         }
 
         Some(Token::OpenBrace) => {
-            visitor.visit_trivia(lexer.source1());
+            visitor.visit_trivia(lexer.slice1());
             lexer.bump();
 
             let mut children_visitor = visitor.visit_children();
             visit_children(lexer, &mut children_visitor)?;
             visitor.finish_children(children_visitor);
 
-            match lexer.peek1() {
-                Some((Token::CloseBrace, range)) => {
-                    let src = lexer.source(range);
-                    visitor.visit_trivia(src);
+            match lexer.token1() {
+                Some(Token::CloseBrace) => {
+                    visitor.visit_trivia(lexer.slice1());
                     lexer.bump();
                 }
-                got => {
+                _ => {
                     return Err(ParseErrorKind::Unexpected {
-                        got,
+                        got: lexer.peek1(),
                         expected: expected::a_node_or_close_brace,
                     });
                 }
@@ -336,7 +336,7 @@ fn try_visit_node_entry<'kdl>(
         }
 
         Some(tok) if tok.is_node_terminator() => {
-            visitor.visit_trivia(lexer.source1());
+            visitor.visit_trivia(lexer.slice1());
             lexer.bump();
             return Ok(false);
         }
@@ -376,7 +376,7 @@ fn visit_node_property<'kdl>(
         (Some(Token::Equals), _) => {
             let mut property_visitor = visitor.visit_property();
             property_visitor.visit_name(name);
-            property_visitor.visit_trivia(lexer.source1());
+            property_visitor.visit_trivia(lexer.slice1());
             lexer.bump();
 
             if let Some(Token::Whitespace) = lexer.token1() {
@@ -386,7 +386,7 @@ fn visit_node_property<'kdl>(
                 });
             }
 
-            if try_visit_value(lexer, PropertyVisitor::ref_cast_mut(&mut property_visitor))? {
+            if try_visit_value(lexer, property_visitor.opaque())? {
                 visitor.finish_property(property_visitor);
             } else {
                 return Err(ParseErrorKind::Unexpected {
@@ -441,7 +441,7 @@ fn visit_node_argument<'kdl>(
 
         Some(Token::OpenParen) => {
             let mut argument_visitor = visitor.visit_argument();
-            try_visit_value(lexer, ArgumentVisitor::ref_cast_mut(&mut argument_visitor))?;
+            try_visit_value(lexer, argument_visitor.opaque())?;
             visitor.finish_argument(argument_visitor);
         }
 
@@ -490,19 +490,19 @@ fn try_visit_value<'kdl>(
 fn parse_string<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<String<'kdl>, ParseErrorKind> {
     match lexer.token1() {
         Some(Token::String) => {
-            let src = lexer.source1();
+            let src = lexer.slice1();
             lexer.bump();
             Ok(String {
                 value: unescape(&src[1..src.len() - 1])
                     .map_err(|err| ParseErrorKind::InvalidEscape {
-                        src: locate(lexer.source(..), err),
+                        src: locate(lexer.source(), err),
                     })?
                     .into(),
                 repr: src.into(),
             })
         }
         Some(Token::RawString) => {
-            let src = lexer.source1();
+            let src = lexer.slice1();
             lexer.bump();
             let inner = src[1..].trim_matches('#');
             Ok(String {
@@ -517,7 +517,7 @@ fn parse_string<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<String<'kdl>, ParseErro
 fn parse_identifier<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Identifier<'kdl>, ParseErrorKind> {
     match lexer.token1() {
         Some(Token::BareIdentifier) => {
-            let src = lexer.source1();
+            let src = lexer.slice1();
             lexer.bump();
             Ok(Identifier {
                 value: src.into(),
@@ -533,7 +533,7 @@ fn parse_number<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Number<'kdl>, ParseErro
     match lexer.token1() {
         // common base-10 case gets an explicitly monomorphized codepath
         Some(Token::Float10 | Token::Int10) => {
-            let src = lexer.source1();
+            let src = lexer.slice1();
             let span = lexer.span1();
             lexer.bump();
             // TODO: handle exponential notation
@@ -546,7 +546,7 @@ fn parse_number<'kdl>(lexer: &mut Lexer<'kdl>) -> Result<Number<'kdl>, ParseErro
             })
         }
         Some(tok) if tok.is_number() => {
-            let src = lexer.source1();
+            let src = lexer.slice1();
             let span = lexer.span1();
             lexer.bump();
             let radix = match tok {

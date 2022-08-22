@@ -1,4 +1,5 @@
 #![no_std]
+#![warn(unreachable_pub)]
 
 extern crate alloc;
 extern crate self as kdl;
@@ -13,7 +14,7 @@ mod visit;
 pub use kdl::{
     components::{
         Document, Entry, Identifier, IdentifierKind, Node, Number, NumberFormat, String,
-        TryFromNumberError, Value,
+        StringKind, TryFromNumberError, Value,
     },
     parse::{validate_kdl_string, visit_kdl_string, ParseError},
     visit::{VisitArgument, VisitChildren, VisitDocument, VisitNode, VisitProperty},
