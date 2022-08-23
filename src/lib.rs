@@ -1,21 +1,23 @@
 #![no_std]
 #![warn(unreachable_pub)]
 
+#[cfg(feature = "alloc")]
 extern crate alloc;
-extern crate self as kdl;
 #[cfg(feature = "std")]
 extern crate std;
 
-mod components;
-mod parse;
+// mod components;
+// mod parse;
+mod error;
 mod utils;
-mod visit;
+pub mod visit;
 
-pub use kdl::{
-    components::{
-        Document, Entry, Identifier, IdentifierKind, Node, Number, NumberFormat, String,
-        StringKind, TryFromNumberError, Value,
-    },
-    parse::{validate_kdl_string, visit_kdl_string, ParseError},
-    visit::{VisitArgument, VisitChildren, VisitDocument, VisitNode, VisitProperty},
-};
+pub use self::error::ParseError;
+
+// pub use kdl::{
+//     components::{
+//         Document, Entry, Identifier, IdentifierKind, Node, Number, NumberFormat, String,
+//         StringKind, TryFromNumberError, Value,
+//     },
+//     parse::{validate_kdl_string, visit_kdl_string, ParseError},
+// };

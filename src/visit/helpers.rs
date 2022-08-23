@@ -1,12 +1,10 @@
-use {super::*, ref_cast::RefCast};
+use {crate::visit, ref_cast::RefCast};
 
-#[doc(hidden)] // priv-in-pub
-#[allow(unreachable_pub)]
-pub struct PrivateCall;
-
-pub(crate) trait VisitTrivia<'kdl> {
+pub(crate) trait Trivia<'kdl> {
     fn visit_trivia(&mut self, trivia: &'kdl str);
-    fn only_trivia(&mut self) -> TriviaVisitor<'_, 'kdl>
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError>;
+
+    fn just_trivia(&mut self) -> TriviaVisitor<'_, 'kdl>
     where
         Self: Sized,
     {
@@ -14,34 +12,37 @@ pub(crate) trait VisitTrivia<'kdl> {
     }
 }
 
-pub(crate) trait VisitTypeAnnotation<'kdl>: VisitTrivia<'kdl> {
-    fn visit_type(&mut self, annotation: kdl::Identifier<'kdl>);
+pub(crate) trait JustType<'kdl>: Trivia<'kdl> {
+    fn visit_type(&mut self, _: visit::Identifier<'kdl>) {}
 }
 
-pub(crate) trait VisitValue<'kdl>: VisitTypeAnnotation<'kdl> {
-    fn visit_value(&mut self, value: kdl::Value<'kdl>);
+pub(crate) trait JustValue<'kdl>: JustType<'kdl> {
+    fn visit_value(&mut self, _: visit::Value<'kdl>) {}
 }
 
 macro_rules! define_visitor_structs {
     {
         $(
-            struct $Visitor:ident(impl $Visit:ident) from $Extension:ident $(as $($Helper:tt),*)?;
+            struct $Visitor:ident(impl visit::$Visit:ident)
+                from visit::$Extension:ident
+                $(as $(visit::$Helper:tt),*)?;
         )*
     } => {
         $(
-            #[doc(hidden)]
             #[derive(RefCast)]
             #[repr(transparent)]
-            #[allow(unreachable_pub)]
-            pub struct $Visitor<V: ?Sized>(V);
-            impl<'kdl, V: ?Sized + $Visit<'kdl>> VisitTrivia<'kdl> for $Visitor<V> {
+            pub(crate) struct $Visitor<V: ?Sized>(V);
+            impl<'kdl, V: ?Sized + visit::$Visit<'kdl>> visit::Trivia<'kdl> for $Visitor<V> {
                 fn visit_trivia(&mut self, trivia: &'kdl str) {
                     self.0.visit_trivia(trivia);
                 }
+                fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+                    self.0.visit_error(error)
+                }
             }
 
-            impl<'kdl, V: ?Sized + $Visit<'kdl>> $Extension<'kdl> for V {}
-            pub(crate) trait $Extension<'kdl>: $Visit<'kdl> {
+            impl<'kdl, V: ?Sized + visit::$Visit<'kdl>> $Extension<'kdl> for V {}
+            pub(crate) trait $Extension<'kdl>: visit::$Visit<'kdl> {
                 fn opaque(&mut self) -> &mut $Visitor<Self> {
                     $Visitor::ref_cast_mut(self)
                 }
@@ -49,23 +50,23 @@ macro_rules! define_visitor_structs {
                 where
                     Self: Sized,
                 {
-                    $Visit::_only_trivia(self, PrivateCall)
+                    TriviaVisitor::new(self.opaque())
                 }
             }
 
-            $($(define_visitor_structs!(@extend $Visitor($Visit) as $Helper);)*)?
+            $($(define_visitor_structs!(@extend $Visitor(visit::$Visit) as visit::$Helper);)*)?
         )*
     };
-    (@extend $Visitor:ident($Visit:ident) as VisitTypeAnnotation) => {
-        impl<'kdl, V: $Visit<'kdl>> VisitTypeAnnotation<'kdl> for $Visitor<V> {
-            fn visit_type(&mut self, annotation: kdl::Identifier<'kdl>) {
+    (@extend $Visitor:ident(visit::$Visit:ident) as visit::JustType) => {
+        impl<'kdl, V: ?Sized + visit::$Visit<'kdl>> visit::JustType<'kdl> for $Visitor<V> {
+            fn visit_type(&mut self, annotation: visit::Identifier<'kdl>) {
                 self.0.visit_type(annotation);
             }
         }
     };
-    (@extend $Visitor:ident($Visit:ident) as VisitValue) => {
-        impl<'kdl, V: $Visit<'kdl>> VisitValue<'kdl> for $Visitor<V> {
-            fn visit_value(&mut self, value: kdl::Value<'kdl>) {
+    (@extend $Visitor:ident(visit::$Visit:ident) as visit::JustValue) => {
+        impl<'kdl, V: ?Sized + visit::$Visit<'kdl>> visit::JustValue<'kdl> for $Visitor<V> {
+            fn visit_value(&mut self, value: visit::Value<'kdl>) {
                 self.0.visit_value(value);
             }
         }
@@ -73,41 +74,49 @@ macro_rules! define_visitor_structs {
 }
 
 define_visitor_structs! {
-    struct ChildrenVisitor(impl VisitChildren) from VisitChildrenExt;
-    struct NodeVisitor    (impl VisitNode    ) from VisitNodeExt     as VisitTypeAnnotation;
-    struct PropertyVisitor(impl VisitProperty) from VisitPropertyExt as VisitTypeAnnotation, VisitValue;
-    struct ArgumentVisitor(impl VisitArgument) from VisitArgumentExt as VisitTypeAnnotation, VisitValue;
+    struct ChildrenVisitor(impl visit::Children) from visit::ChildrenExt;
+    struct NodeVisitor    (impl visit::Node    ) from visit::NodeExt     as visit::JustType;
+    struct PropertyVisitor(impl visit::Property) from visit::PropertyExt as visit::JustType, visit::JustValue;
+    struct ArgumentVisitor(impl visit::Argument) from visit::ArgumentExt as visit::JustType, visit::JustValue;
 }
 
 // This holds &dyn VisitTrivia to avoid recursive TriviaVisitor monomorphizing.
 // It would be nice to monomorphize, but this would require *type* specializing
 // TriviaVisitor::only_trivia to return Self instead of TriviaVisitor<Self>.
 #[allow(unreachable_pub)]
-pub struct TriviaVisitor<'a, 'kdl>(Option<&'a mut dyn VisitTrivia<'kdl>>);
+pub struct TriviaVisitor<'a, 'kdl>(Option<&'a mut dyn Trivia<'kdl>>);
 
 impl<'a, 'kdl> TriviaVisitor<'a, 'kdl> {
-    pub(super) fn new(visitor: &'a mut dyn VisitTrivia<'kdl>) -> Self {
+    fn new(visitor: &'a mut dyn Trivia<'kdl>) -> Self {
         TriviaVisitor(Some(visitor))
     }
 
-    fn inner(&mut self) -> &mut dyn VisitTrivia<'kdl> {
+    fn inner(&mut self) -> &mut dyn Trivia<'kdl> {
         &mut **self
             .0
             .as_mut()
-            .expect("kdl visitor should not be called while visiting child component")
+            .expect("kdl visitor should not be called while visiting a child component")
     }
 
     fn visit(&mut self, trivia: &'kdl str) {
         self.inner().visit_trivia(trivia);
     }
+
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+        self.inner().visit_error(error)
+    }
 }
 
-impl<'kdl> VisitTrivia<'kdl> for TriviaVisitor<'_, 'kdl> {
+impl<'kdl> Trivia<'kdl> for TriviaVisitor<'_, 'kdl> {
     fn visit_trivia(&mut self, trivia: &'kdl str) {
         self.visit(trivia);
     }
 
-    fn only_trivia(&mut self) -> TriviaVisitor<'_, 'kdl>
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+        self.visit_error(error)
+    }
+
+    fn just_trivia(&mut self) -> TriviaVisitor<'_, 'kdl>
     where
         Self: Sized,
     {
@@ -115,19 +124,19 @@ impl<'kdl> VisitTrivia<'kdl> for TriviaVisitor<'_, 'kdl> {
     }
 }
 
-impl<'kdl> VisitTypeAnnotation<'kdl> for TriviaVisitor<'_, 'kdl> {
-    fn visit_type(&mut self, annotation: kdl::Identifier<'kdl>) {
-        self.visit(annotation.unwrap_repr());
+impl<'kdl> JustType<'kdl> for TriviaVisitor<'_, 'kdl> {
+    fn visit_type(&mut self, annotation: visit::Identifier<'kdl>) {
+        self.visit(annotation.source());
     }
 }
 
-impl<'kdl> VisitValue<'kdl> for TriviaVisitor<'_, 'kdl> {
-    fn visit_value(&mut self, value: kdl::Value<'kdl>) {
-        self.visit(value.unwrap_repr());
+impl<'kdl> JustValue<'kdl> for TriviaVisitor<'_, 'kdl> {
+    fn visit_value(&mut self, value: visit::Value<'kdl>) {
+        self.visit(value.source());
     }
 }
 
-impl<'kdl> VisitChildren<'kdl> for TriviaVisitor<'_, 'kdl> {
+impl<'kdl> visit::Children<'kdl> for TriviaVisitor<'_, 'kdl> {
     type VisitNode = Self;
 
     fn visit_trivia(&mut self, trivia: &'kdl str) {
@@ -141,9 +150,13 @@ impl<'kdl> VisitChildren<'kdl> for TriviaVisitor<'_, 'kdl> {
     fn finish_node(&mut self, node: Self::VisitNode) {
         self.0 = node.0;
     }
+
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+        self.visit_error(error)
+    }
 }
 
-impl<'kdl> VisitNode<'kdl> for TriviaVisitor<'_, 'kdl> {
+impl<'kdl> visit::Node<'kdl> for TriviaVisitor<'_, 'kdl> {
     type VisitArgument = Self;
     type VisitProperty = Self;
     type VisitChildren = Self;
@@ -152,12 +165,12 @@ impl<'kdl> VisitNode<'kdl> for TriviaVisitor<'_, 'kdl> {
         self.visit(trivia)
     }
 
-    fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {
-        self.visit(annotation.unwrap_repr());
+    fn visit_type(&mut self, annotation: visit::Identifier<'kdl>) {
+        self.visit(annotation.source());
     }
 
-    fn visit_name(&mut self, name: crate::Identifier<'kdl>) {
-        self.visit(name.unwrap_repr());
+    fn visit_name(&mut self, name: visit::Identifier<'kdl>) {
+        self.visit(name.source());
     }
 
     fn visit_argument(&mut self) -> Self::VisitArgument {
@@ -183,36 +196,48 @@ impl<'kdl> VisitNode<'kdl> for TriviaVisitor<'_, 'kdl> {
     fn finish_children(&mut self, children: Self::VisitChildren) {
         self.0 = children.0;
     }
+
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+        self.visit_error(error)
+    }
 }
 
-impl<'kdl> VisitArgument<'kdl> for TriviaVisitor<'_, 'kdl> {
+impl<'kdl> visit::Argument<'kdl> for TriviaVisitor<'_, 'kdl> {
     fn visit_trivia(&mut self, trivia: &'kdl str) {
         self.visit(trivia)
     }
 
-    fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {
-        self.visit(annotation.unwrap_repr());
+    fn visit_type(&mut self, annotation: visit::Identifier<'kdl>) {
+        self.visit(annotation.source());
     }
 
-    fn visit_value(&mut self, value: crate::Value<'kdl>) {
-        self.visit(value.unwrap_repr())
+    fn visit_value(&mut self, value: visit::Value<'kdl>) {
+        self.visit(value.source())
+    }
+
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+        self.visit_error(error)
     }
 }
 
-impl<'kdl> VisitProperty<'kdl> for TriviaVisitor<'_, 'kdl> {
+impl<'kdl> visit::Property<'kdl> for TriviaVisitor<'_, 'kdl> {
     fn visit_trivia(&mut self, trivia: &'kdl str) {
         self.visit(trivia)
     }
 
-    fn visit_name(&mut self, name: crate::Identifier<'kdl>) {
-        self.visit(name.unwrap_repr())
+    fn visit_name(&mut self, name: visit::Identifier<'kdl>) {
+        self.visit(name.source())
     }
 
-    fn visit_type(&mut self, annotation: crate::Identifier<'kdl>) {
-        self.visit(annotation.unwrap_repr());
+    fn visit_type(&mut self, annotation: visit::Identifier<'kdl>) {
+        self.visit(annotation.source());
     }
 
-    fn visit_value(&mut self, value: crate::Value<'kdl>) {
-        self.visit(value.unwrap_repr())
+    fn visit_value(&mut self, value: visit::Value<'kdl>) {
+        self.visit(value.source())
+    }
+
+    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+        self.visit_error(error)
     }
 }
