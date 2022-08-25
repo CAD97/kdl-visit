@@ -2,13 +2,16 @@
 source: tests/corpus.rs
 expression: "node(ty)1\n"
 ---
-kdl::parse::node_entry_claustrophobia
 
-  × missing required whitespace
+  × errors occured while parsing
+
+Error: kdl::whitespace::before_argument (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.MissingWhitespaceBeforeArgument)
+
+  × node arguments must be separated by whitespace
    ╭────
  1 │ node(ty)1
    ·     ▲──┬─
    ·     │  ╰── before this argument
-   ·     ╰── add a space here
+   ·     ╰── whitespace needed here
    ╰────
 

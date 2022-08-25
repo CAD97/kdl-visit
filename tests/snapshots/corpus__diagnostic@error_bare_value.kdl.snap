@@ -1,6 +1,6 @@
 ---
 source: tests/corpus.rs
-expression: "1\n"
+expression: "97\n"
 ---
 
   × errors occured while parsing
@@ -9,8 +9,8 @@ Error: kdl::bare_value (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseErr
 
   × values are not allowed without a containing node
    ╭────
- 1 │ 1
-   · ─
+ 1 │ 97
+   · ──
    ╰────
   help: put the value inside a node
 

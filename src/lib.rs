@@ -1,23 +1,26 @@
 #![no_std]
-#![warn(unreachable_pub)]
+#![warn(missing_debug_implementations, unreachable_pub)]
 
 #[cfg(feature = "alloc")]
+#[allow(unused_imports)]
+#[macro_use]
 extern crate alloc;
 #[cfg(feature = "std")]
+#[allow(unused_imports)]
+#[macro_use]
 extern crate std;
 
 // mod components;
-// mod parse;
 mod error;
+mod parse;
 mod utils;
 pub mod visit;
 
-pub use self::error::ParseError;
+pub use self::{
+    error::{ErrorSpan, ParseError},
+    parse::visit_kdl_string,
+};
+pub(crate) use error::ERROR_STRING;
 
-// pub use kdl::{
-//     components::{
-//         Document, Entry, Identifier, IdentifierKind, Node, Number, NumberFormat, String,
-//         StringKind, TryFromNumberError, Value,
-//     },
-//     parse::{validate_kdl_string, visit_kdl_string, ParseError},
-// };
+#[cfg(feature = "alloc")]
+pub use self::error::{CollectErrors, ParseErrors};

@@ -1,5 +1,5 @@
 [package]
-name = "kdl-parser"
+name = "kdl-visit"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,6 +12,7 @@ lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]
 
 [dependencies]
+displaydoc = { version = "0.2.3", default-features = false }
 lexical-core = { version = "0.8.5", default-features = false, features = ["parse-floats", "parse-integers", "power-of-two", "format"], optional = true }
 logos = { version = "0.12.1", default-features = false, features = ["export_derive"] }
 miette = { version = "5.3.0", default-features = false, optional = true }
@@ -21,8 +22,10 @@ sptr = "0.3.2"
 tracing = { version = "0.1.36", default-features = false, features = ["attributes"], optional = true }
 
 [dev-dependencies]
-insta = { version = "1.18.2", default-features = false, features = ["colors", "glob"] }
+insta = { version = "1.19.0", default-features = false, features = ["colors", "glob", "filters"] }
 miette = { version = "5.3.0", features = ["fancy"] }
+tracing-subscriber = { version = "0.3.15", features = ["registry"] }
+tracing-tree = "0.2.1"
 
 [profile.dev.package]
 insta = { opt-level = 3 }

@@ -1,0 +1,9 @@
+---
+source: tests/corpus.rs
+expression: "97\n"
+---
+(document
+  (node
+    (error "values are not allowed without a containing node")
+    (trivia "97"))
+  (trivia "\n"))

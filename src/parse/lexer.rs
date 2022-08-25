@@ -4,26 +4,16 @@ use {
 };
 
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq)]
-#[logos(subpattern sign = r"[+-]")]
-#[logos(subpattern digit = r"[0-9]")]
-#[logos(subpattern integer = r"(?&digit)((?&digit)|_)*")]
-#[logos(subpattern exponent = r"[eE](?&sign)?(?&integer)")]
-#[logos(subpattern hex_digit = r"[0-9a-fA-F]")]
-#[logos(subpattern escape = r#"["\\/bfnrt]|u\{(?&hex_digit)(?&hex_digit)?(?&hex_digit)?(?&hex_digit)?(?&hex_digit)?(?&hex_digit)?\}"#)]
-#[logos(subpattern character = r#"\\(?&escape)|[^\\"]"#)]
+#[logos(subpattern integer = r"[[:digit:]][[:digit:]_]*")]
+#[logos(subpattern exponent = r"[eE][+-]?(?&integer)")]
 #[logos(subpattern id_char = r#"[^\\/(){}<>;\[\]=,\t \u{A0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{202F}\u{205F}\u{3000}\u{FEFF}\r\n\u{85}\u{0C}\u{2028}\u{2029}"]"#)]
 #[logos(subpattern single_line_comment = r#"//[^\r\n\u{85}\u{0C}\u{2028}\u{2029}]*"#)]
 pub(crate) enum Token {
-    #[regex(r"(?&sign)?(?&integer)(?:\.(?&integer))?(?&exponent)?")]
-    Float10,
-    #[regex(r"(?&sign)?(?&integer)", priority = 2)]
-    Int10,
-    #[regex(r"(?&sign)?0x(?&hex_digit)(?:(?&hex_digit)|_)*")]
-    Int16,
-    #[regex(r"(?&sign)?0o[0-7][0-7_]*")]
-    Int8,
-    #[regex(r"(?&sign)?0b[01][01_]*")]
-    Int2,
+    #[regex(r"[+-]?(?&integer)(?:\.(?&integer))?(?&exponent)?")] // base 10
+    #[regex(r"[+-]?0x[[:xdigit:]][[:xdigit:]_]*")] // base 16
+    #[regex(r"[+-]?0o[0-7][0-7_]*")] // base 8
+    #[regex(r"[+-]?0b[01][01_]*")] // base 2
+    Number,
 
     #[regex("\r")] // Carriage Return
     #[token("\n")] // Line Feed
@@ -57,13 +47,10 @@ pub(crate) enum Token {
     #[token("/*", multi_line_comment)] // Multi-Line Comment
     Whitespace,
 
-    #[token("\\")]
-    EscLine,
-
-    #[regex(r#""(?&character)*""#)]
-    String,
+    #[token(r#"""#, string)]
     #[regex(r#"r#*""#, raw_string)]
-    RawString,
+    String(bool),
+
     #[regex(r#"(?&id_char)+"#, priority = 0)]
     BareIdentifier,
 
@@ -74,6 +61,8 @@ pub(crate) enum Token {
     #[token("null")]
     Null,
 
+    #[token("\\")]
+    EscLine,
     #[token("/-")]
     SlashDash,
     #[token("(")]
@@ -89,12 +78,15 @@ pub(crate) enum Token {
     #[token("=")]
     Equals,
 
-    #[error]
-    UnknownError,
+    #[token("/")]
+    #[token("<")]
+    #[token(">")]
+    #[token("[")]
+    #[token("]")]
+    Reserved,
 
-    #[token("r#", priority = 1)]
-    #[token(r#"r""#, priority = 1)]
-    UnclosedRawString,
+    #[error]
+    Error,
 }
 
 fn multi_line_comment(lex: &mut logos::Lexer<Token>) -> bool {
@@ -119,63 +111,60 @@ fn multi_line_comment(lex: &mut logos::Lexer<Token>) -> bool {
     }
 }
 
+fn string(lex: &mut logos::Lexer<Token>) -> bool {
+    let mut invalid = false;
+
+    while let Some(i) = lex.remainder().find(['\\', '"']) {
+        lex.bump(i);
+        let end = lex.remainder().bytes().next() == Some(b'"');
+        lex.bump(1);
+        if end {
+            return !invalid;
+        }
+
+        match lex.remainder().bytes().next() {
+            Some(b'n' | b'r' | b't' | b'\\' | b'/' | b'"' | b'b' | b'f') => lex.bump(1),
+            Some(b'u') => {
+                lex.bump(1);
+                if lex.remainder().bytes().next() != Some(b'{') {
+                    invalid = true;
+                    continue;
+                }
+                lex.bump(1);
+                let exit = lex.remainder().find('}').unwrap_or(usize::MAX);
+                if lex.remainder().as_bytes().get(exit) != Some(&b'}') {
+                    invalid = true;
+                    continue;
+                }
+                invalid &= u32::from_str_radix(&lex.remainder()[..exit], 16)
+                    .ok()
+                    .map(char::from_u32)
+                    .is_none();
+            }
+            _ => invalid = true,
+        }
+    }
+
+    lex.bump(lex.remainder().len());
+    false
+}
+
 fn raw_string(lex: &mut logos::Lexer<Token>) -> bool {
     let hash_count = lex.slice().len() - 2;
-    while let Some(next) = lex.remainder().find('\"') {
-        let after = &lex.remainder()[next + 1..];
-        let hashes_after = after.find(|c| c != '#').unwrap_or(after.len());
+    while let Some(i) = lex.remainder().find('\"') {
+        lex.bump(i + 1);
+        let hashes_after = lex.remainder().bytes().take_while(|&b| b == b'#').count();
         if hashes_after >= hash_count {
-            lex.bump(next + 1 + hash_count);
+            lex.bump(hash_count);
             return true;
-        } else {
-            lex.bump(next + 1 + hashes_after);
         }
     }
     false
 }
 
-impl Token {
-    pub(crate) fn is_string(&self) -> bool {
-        matches!(self, Token::String | Token::RawString)
-    }
-
-    pub(crate) fn is_identifier(&self) -> bool {
-        matches!(
-            self,
-            Token::BareIdentifier | Token::String | Token::RawString
-        )
-    }
-
-    pub(crate) fn is_number(&self) -> bool {
-        matches!(
-            self,
-            Token::Float10 | Token::Int10 | Token::Int16 | Token::Int8 | Token::Int2
-        )
-    }
-
-    pub(crate) fn is_value(&self) -> bool {
-        matches!(
-            self,
-            Token::Null
-            // Boolean 
-            | Token::True | Token::False
-            // String
-            | Token::String | Token::RawString
-            // Number
-            | Token::Float10 | Token::Int10 | Token::Int16 | Token::Int8 | Token::Int2
-        )
-    }
-
-    pub(crate) fn is_node_terminator(&self) -> bool {
-        matches!(self, Token::Newline | Token::Semicolon)
-    }
-}
-
-/// An LL(2) lexer which additionally collapses sequential Token::Whitespace
-/// and Token::Newline into a single token (using a 3rd lookahead slot).
 pub(crate) struct Lexer<'kdl> {
     lexer: logos::Lexer<'kdl, Token>,
-    lookahead: [Option<(Token, Range<usize>)>; 3],
+    lookahead: [Option<(Token, Range<usize>)>; 4],
 }
 
 #[allow(unreachable_pub)]
@@ -183,8 +172,10 @@ impl<'kdl> Lexer<'kdl> {
     pub fn new(kdl: &'kdl str) -> Self {
         let mut this = Self {
             lexer: Token::lexer(kdl),
-            lookahead: [None, None, None],
+            lookahead: [None, None, None, None],
         };
+        debug_assert!(this.peek1().is_none());
+        this.bump();
         debug_assert!(this.peek1().is_none());
         this.bump();
         debug_assert!(this.peek1().is_none());
@@ -195,6 +186,11 @@ impl<'kdl> Lexer<'kdl> {
         this
     }
 
+    #[cfg(feature = "tracing")]
+    pub fn ll3(&self) -> &[Option<(Token, Range<usize>)>] {
+        &self.lookahead[..3]
+    }
+
     pub fn source(&self) -> &'kdl str {
         self.lexer.source()
     }
@@ -203,7 +199,7 @@ impl<'kdl> Lexer<'kdl> {
         &self.source()[index]
     }
 
-    pub fn peek1(&self) -> Option<(Token, Range<usize>)> {
+    fn peek1(&self) -> Option<(Token, Range<usize>)> {
         self.lookahead[0].clone()
     }
 
@@ -222,40 +218,41 @@ impl<'kdl> Lexer<'kdl> {
         self.slice(self.span1())
     }
 
-    fn peek2(&self) -> Option<(Token, Range<usize>)> {
-        self.lookahead[1].clone()
+    pub fn token2(&self) -> Option<Token> {
+        self.lookahead[1].clone().map(|(token, _)| token)
     }
 
-    pub fn token2(&self) -> Option<Token> {
-        self.peek2().map(|(token, _)| token)
+    pub fn token3(&self) -> Option<Token> {
+        self.lookahead[2].clone().map(|(token, _)| token)
     }
 
     pub fn bump(&mut self) {
         self.lookahead[0] = self.lookahead[1].take();
         self.lookahead[1] = self.lookahead[2].take();
+        self.lookahead[2] = self.lookahead[3].take();
         loop {
             match self.lexer.next() {
                 Some(Token::Whitespace) => {
                     let span = self.lexer.span();
-                    if let Some((Token::Whitespace, range)) = &mut self.lookahead[1] {
+                    if let Some((Token::Whitespace, range)) = &mut self.lookahead[2] {
                         debug_assert_eq!(range.end, span.start);
                         *range = range.start..span.end;
                         continue;
                     } else {
-                        self.lookahead[2] = Some((Token::Whitespace, span));
+                        self.lookahead[3] = Some((Token::Whitespace, span));
                     }
                 }
                 Some(Token::Newline) => {
                     let span = self.lexer.span();
-                    if let Some((Token::Newline, range)) = &mut self.lookahead[1] {
+                    if let Some((Token::Newline, range)) = &mut self.lookahead[2] {
                         debug_assert_eq!(range.end, span.start);
                         *range = range.start..span.end;
                         continue;
                     } else {
-                        self.lookahead[2] = Some((Token::Newline, span));
+                        self.lookahead[3] = Some((Token::Newline, span));
                     }
                 }
-                next => self.lookahead[2] = next.map(|token| (token, self.lexer.span())),
+                next => self.lookahead[3] = next.map(|token| (token, self.lexer.span())),
             }
             break;
         }

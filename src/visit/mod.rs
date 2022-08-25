@@ -1,13 +1,22 @@
-pub(crate) use self::helpers::{JustType, JustValue, Trivia};
+pub(crate) use self::helpers::*;
 pub use self::terminals::{Identifier, Number, String, Value};
-use crate::visit;
+use crate::{visit, ParseError};
 
 mod helpers;
 mod terminals;
 
-pub trait Document<'kdl>: visit::Children<'kdl> {
+pub mod prelude {
+    #[allow(unreachable_pub)] // false positive as of Rust 1.63
+    pub use super::{Argument as _, Children as _, Node as _, Property as _};
+    pub(crate) use super::{ArgumentExt as _, ChildrenExt as _, NodeExt as _, PropertyExt as _};
+}
+
+pub trait Document<'kdl>: Sized + visit::Children<'kdl> {
     type Output;
     fn finish(self) -> Self::Output;
+    fn finish_error(self, error: ParseError) -> Result<Self::Output, ParseError> {
+        Err(error)
+    }
 }
 
 pub trait Children<'kdl> {
@@ -20,7 +29,7 @@ pub trait Children<'kdl> {
     fn visit_node(&mut self) -> Self::VisitNode;
     fn finish_node(&mut self, _: Self::VisitNode) {}
 
-    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+    fn visit_error(&mut self, error: ParseError) -> Result<(), ParseError> {
         Err(error)
     }
 }
@@ -46,7 +55,7 @@ pub trait Node<'kdl> {
     fn visit_children(&mut self) -> Self::VisitChildren;
     fn finish_children(&mut self, _: Self::VisitChildren) {}
 
-    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+    fn visit_error(&mut self, error: ParseError) -> Result<(), ParseError> {
         Err(error)
     }
 }
@@ -60,7 +69,7 @@ pub trait Property<'kdl> {
     fn visit_type(&mut self, _: visit::Identifier<'kdl>) {}
     fn visit_value(&mut self, _: visit::Value<'kdl>) {}
 
-    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+    fn visit_error(&mut self, error: ParseError) -> Result<(), ParseError> {
         Err(error)
     }
 }
@@ -73,7 +82,7 @@ pub trait Argument<'kdl> {
     fn visit_type(&mut self, _: visit::Identifier<'kdl>) {}
     fn visit_value(&mut self, _: visit::Value<'kdl>) {}
 
-    fn visit_error(&mut self, error: crate::ParseError) -> Result<(), crate::ParseError> {
+    fn visit_error(&mut self, error: ParseError) -> Result<(), ParseError> {
         Err(error)
     }
 }

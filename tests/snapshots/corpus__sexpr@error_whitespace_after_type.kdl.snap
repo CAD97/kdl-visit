@@ -1,0 +1,24 @@
+---
+source: tests/corpus.rs
+expression: "(interesting) node\nnode (interesting) \"value\"\n"
+---
+(document
+  (node
+    (trivia "(")
+    (type interesting)
+    (trivia ")")
+    (error "type annotations must not be followed by whitespace")
+    (trivia " ")
+    (name node)
+    (trivia "\n"))
+  (node
+    (name node)
+    (trivia " ")
+    (argument
+      (trivia "(")
+      (type interesting)
+      (trivia ")")
+      (error "type annotations must not be followed by whitespace")
+      (trivia " ")
+      (value "value"))
+    (trivia "\n")))

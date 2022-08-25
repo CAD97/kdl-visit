@@ -1,0 +1,10 @@
+---
+source: tests/corpus.rs
+expression: "node \\ \"value\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " " "\\" " " "\"value\"")
+    (error "line continuation was not followed by a newline")
+    (trivia "\n")))

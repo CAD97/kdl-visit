@@ -1,0 +1,9 @@
+---
+source: tests/corpus.rs
+expression: "node \\ // no newline at end of file"
+---
+(document
+  (node
+    (name node)
+    (trivia " " "\\" " // no newline at end of file")
+    (error "line continuations cannot be used at the end of a file")))

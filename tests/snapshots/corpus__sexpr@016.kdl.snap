@@ -1,0 +1,14 @@
+---
+source: tests/corpus.rs
+expression: "node(ty)1\n"
+---
+(document
+  (node
+    (name node)
+    (argument
+      (trivia "(")
+      (type ty)
+      (trivia ")")
+      (value 1))
+    (error "node arguments must be separated by whitespace")
+    (trivia "\n")))

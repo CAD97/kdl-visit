@@ -18,12 +18,12 @@ pub enum Value<'kdl> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct String<'kdl> {
-    source: &'kdl str,
+    pub(crate) source: &'kdl str,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Number<'kdl> {
-    source: &'kdl str,
+    pub(crate) source: &'kdl str,
 }
 
 impl<'kdl> Identifier<'kdl> {
@@ -55,7 +55,8 @@ impl<'kdl> Value<'kdl> {
         match self {
             Value::String(string) => string.source(),
             Value::Number(number) => number.source(),
-            Value::Boolean(_) => "true",
+            Value::Boolean(true) => "true",
+            Value::Boolean(false) => "false",
             Value::Null => "null",
         }
     }

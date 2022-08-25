@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "node \"this is an \\invalid escape\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (argument
+      (error "invalid escape sequence")
+      (trivia "\"this is an \\invalid escape\"")
+      (value "<error>"))
+    (trivia "\n")))
