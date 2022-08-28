@@ -1,0 +1,16 @@
+---
+source: tests/corpus.rs
+expression: "node key=value\n"
+---
+
+  × errors occured while parsing
+
+Error: kdl::unquoted_value (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.UnquotedValue)
+
+  × node value strings must be quoted
+   ╭────
+ 1 │ node key=value
+   ·          ─────
+   ╰────
+  help: add quotes around the name
+

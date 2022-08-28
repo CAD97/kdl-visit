@@ -4,33 +4,17 @@ use {
     tracing_subscriber::prelude::*,
 };
 
-fn with_settings(f: impl Fn()) {
-    let version = env!("CARGO_PKG_VERSION");
-    let regex_escaped_version = version.replace('.', r"\.");
-    insta::with_settings!({filters => vec![
-        (&*regex_escaped_version, "latest"),
-    ]}, { f() });
-}
-
 #[test]
 fn run_sexpr_tests() {
-    insta::glob!("corpus/*.kdl", |path| with_settings(|| {
+    insta::glob!("corpus/*.kdl", |path| {
         let input = std::fs::read_to_string(path).unwrap();
         let input = input.replace("\r\n", "\n");
         let dump = RefCell::new(String::new());
         let builder = BuildSExpr::new(&dump);
-        match visit_kdl_string(&input, builder) {
-            Ok(()) => {
-                let parsed = &*dump.into_inner();
-                insta::assert_snapshot!("sexpr", parsed, &input);
-            }
-            Err(e) => {
-                // this is always an error, but allow the snapshot to be created
-                let e = format!("{:#?}", e);
-                insta::assert_snapshot!("sexpr", e, &input);
-            }
-        }
-    }));
+        visit_kdl_string(&input, builder).ok();
+        let parsed = &*dump.into_inner();
+        insta::assert_snapshot!("sexpr", parsed, &input);
+    });
 }
 
 #[test]
@@ -40,32 +24,39 @@ fn run_error_tests() {
         tracing_subscriber::registry().with(tracing_tree::HierarchicalLayer::new(2)),
     )
     .unwrap();
-    insta::glob!("corpus/*.kdl", |path| with_settings(|| {
+    insta::glob!("corpus/*.kdl", |path| {
         let input = std::fs::read_to_string(path).unwrap();
         let input = input.replace("\r\n", "\n");
         let mut errors = Vec::default();
-        match visit_kdl_string(&input, kdl_visit::CollectErrors::new(&mut errors)) {
-            Ok(()) => {
-                if !errors.is_empty() {
-                    let theme = miette::GraphicalReportHandler::new()
-                        .with_theme(miette::GraphicalTheme::unicode_nocolor())
-                        .with_links(false);
-                    let mut report = String::new();
-                    let errors = kdl_visit::ParseErrors {
-                        source: &*input,
-                        errors,
-                    };
-                    theme.render_report(&mut report, &errors).unwrap();
-                    insta::assert_snapshot!("diagnostic", report, &input);
+        visit_kdl_string(&input, kdl_visit::CollectErrors::new(&mut errors)).ok();
+
+        if !errors.is_empty() {
+            let theme = miette::GraphicalReportHandler::new()
+                .with_theme(miette::GraphicalTheme::unicode_nocolor())
+                .with_links(false);
+            let mut report = String::new();
+            let errors = kdl_visit::ParseErrors {
+                source: &*input,
+                errors,
+            };
+            theme.render_report(&mut report, &errors).unwrap();
+            report = report.replace(env!("CARGO_PKG_VERSION"), "latest");
+            insta::assert_snapshot!("diagnostic", report, &input);
+
+            if let Some(stem) = path.file_stem() {
+                let stem = stem.to_string_lossy();
+                if stem.starts_with("error_") {
+                    // record these for docs, but tolerate errors (e.g. w.o. fs)
+                    let _ = std::fs::write(
+                        path.parent()
+                            .unwrap()
+                            .join(format!("../examples/{stem}.stderr")),
+                        report,
+                    );
                 }
             }
-            Err(e) => {
-                // this is always an error, but allow the snapshot to be created
-                let e = format!("{:#?}", e);
-                insta::assert_snapshot!("diagnostic", e, &input);
-            }
         }
-    }));
+    });
 }
 
 #[derive(Clone, Copy)]

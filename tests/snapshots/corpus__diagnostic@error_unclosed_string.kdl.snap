@@ -1,0 +1,16 @@
+---
+source: tests/corpus.rs
+expression: "\"unclosed\n"
+---
+
+  × errors occured while parsing
+
+Error: kdl::unclosed_string (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.UnclosedString)
+
+  × unclosed string
+   ╭────
+ 1 │ "unclosed
+   · ┬
+   · ╰── opened here
+   ╰────
+

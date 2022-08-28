@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "node true=true\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (argument
+      (value true)
+      (error "property keys must be identifiers")
+      (trivia "=" "true"))
+    (trivia "\n")))

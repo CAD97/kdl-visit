@@ -1,0 +1,13 @@
+---
+source: tests/corpus.rs
+expression: "node prop=\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (property
+      (name prop)
+      (trivia "=")
+      (error "property does not have a value"))
+    (trivia "\n")))

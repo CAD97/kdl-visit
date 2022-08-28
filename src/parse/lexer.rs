@@ -159,6 +159,8 @@ fn raw_string(lex: &mut logos::Lexer<Token>) -> bool {
             return true;
         }
     }
+
+    lex.bump(lex.remainder().len());
     false
 }
 

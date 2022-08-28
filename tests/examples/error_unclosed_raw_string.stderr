@@ -1,0 +1,12 @@
+
+  × errors occured while parsing
+
+Error: kdl::unclosed_string (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.UnclosedRawString)
+
+  × unclosed raw string
+   ╭────
+ 1 │ r##"unclosed"#
+   · ──┬─        ─┬
+   ·   │          ╰── this is the best possible end with 1 hash
+   ·   ╰── opened with 2 hashes
+   ╰────

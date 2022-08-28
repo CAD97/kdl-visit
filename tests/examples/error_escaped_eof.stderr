@@ -1,0 +1,11 @@
+
+  × errors occured while parsing
+
+Error: kdl::escaped_eof (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.EscapedEof)
+
+  × line continuations cannot be used at the end of a file
+   ╭────
+ 1 │ node \ // no newline at end of file
+   ·      ─
+   ╰────
+  help: remove the line continuation

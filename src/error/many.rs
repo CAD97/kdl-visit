@@ -37,11 +37,14 @@ impl<'a> CollectErrors<'a> {
         }
     }
 
-    fn push(&mut self, error: ParseError) {
+    fn inner(&mut self) -> &mut Vec<ParseError> {
         self.errors
             .as_mut()
             .expect("kdl visitor should not be called while visiting a child component")
-            .push(error);
+    }
+
+    fn push(&mut self, error: ParseError) {
+        self.inner().push(error);
     }
 }
 
@@ -50,8 +53,11 @@ impl visit::Document<'_> for CollectErrors<'_> {
 
     fn finish(self) {}
     fn finish_error(mut self, error: ParseError) -> Result<(), ParseError> {
-        // unreachable!("parsing should not fail if the visitor allows all errors");
-        self.push(error);
+        debug_assert_eq!(
+            self.inner().last().copied(),
+            Some(error),
+            "finish_error should be called with the last error"
+        );
         Ok(())
     }
 }

@@ -1,0 +1,14 @@
+---
+source: tests/corpus.rs
+expression: "node key=value\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (property
+      (name key)
+      (trivia "=")
+      (error "node value strings must be quoted")
+      (trivia "value"))
+    (trivia "\n")))

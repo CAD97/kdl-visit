@@ -1,0 +1,16 @@
+---
+source: tests/corpus.rs
+expression: "node true=true\n"
+---
+
+  × errors occured while parsing
+
+Error: kdl::value_as_property_key (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.UnquotedPropertyName)
+
+  × property keys must be identifiers
+   ╭────
+ 1 │ node true=true
+   ·      ────
+   ╰────
+  help: this is a value; try quoting it
+

@@ -1,0 +1,16 @@
+---
+source: tests/corpus.rs
+expression: "node property = \"value\"\n"
+---
+
+  × errors occured while parsing
+
+Error: kdl::whitespace::in_property (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.InvalidWhitespaceInProperty)
+
+  × node properties must not contain whitespace
+   ╭────
+ 1 │ node property = "value"
+   ·              ─ ─
+   ╰────
+  help: remove the whitespace
+

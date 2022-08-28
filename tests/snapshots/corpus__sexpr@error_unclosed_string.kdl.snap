@@ -1,0 +1,7 @@
+---
+source: tests/corpus.rs
+expression: "\"unclosed\n"
+---
+(document
+  (node
+    (error "unclosed string"))

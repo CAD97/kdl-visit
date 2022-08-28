@@ -1,0 +1,14 @@
+---
+source: tests/corpus.rs
+expression: "node property = \"value\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (property
+      (name property)
+      (trivia " " "=" " ")
+      (error "node properties must not contain whitespace")
+      (value "value"))
+    (trivia "\n")))

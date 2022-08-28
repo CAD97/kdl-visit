@@ -1,0 +1,19 @@
+
+  × errors occured while parsing
+
+Error: kdl::whitespace::in_type (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.InvalidWhitespaceInType)
+
+  × type annotations must not contain whitespace
+   ╭────
+ 1 │ ( interesting )node with=( interesting )"value"
+   ·  ─           ─
+   ╰────
+  help: remove the whitespace
+Error: kdl::whitespace::in_type (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.InvalidWhitespaceInType)
+
+  × type annotations must not contain whitespace
+   ╭────
+ 1 │ ( interesting )node with=( interesting )"value"
+   ·                           ─           ─
+   ╰────
+  help: remove the whitespace

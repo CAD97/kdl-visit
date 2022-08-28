@@ -18,6 +18,7 @@ logos = { version = "0.12.1", default-features = false, features = ["export_deri
 miette = { version = "5.3.0", default-features = false, optional = true }
 ref-cast = "1.0.9"
 rust_decimal = { version = "1.26.1", default-features = false, optional = true }
+scopeguard = { version = "1.1.0", default-features = false }
 sptr = "0.3.2"
 tracing = { version = "0.1.36", default-features = false, features = ["attributes"], optional = true }
 

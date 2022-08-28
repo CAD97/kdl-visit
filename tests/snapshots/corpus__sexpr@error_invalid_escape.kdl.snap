@@ -1,0 +1,15 @@
+---
+source: tests/corpus.rs
+expression: "invalid escape=\"\\'\"\n"
+---
+(document
+  (node
+    (name invalid)
+    (trivia " ")
+    (property
+      (name escape)
+      (trivia "=")
+      (error "invalid escape sequence")
+      (trivia "\"\\'\"")
+      (value "<error>"))
+    (trivia "\n")))

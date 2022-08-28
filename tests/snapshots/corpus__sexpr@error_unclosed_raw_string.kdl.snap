@@ -1,0 +1,7 @@
+---
+source: tests/corpus.rs
+expression: "r#\"unclosed\"\n"
+---
+(document
+  (node
+    (error "unclosed raw string"))

@@ -1,0 +1,21 @@
+
+  × errors occured while parsing
+
+Error: kdl::whitespace::after_type (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.InvalidWhitespaceAfterType)
+
+  × type annotations must not be followed by whitespace
+   ╭─[1:1]
+ 1 │ (interesting) node
+   ·              ─
+ 2 │ node (interesting) "value"
+   ╰────
+  help: remove the whitespace
+Error: kdl::whitespace::after_type (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.InvalidWhitespaceAfterType)
+
+  × type annotations must not be followed by whitespace
+   ╭─[1:1]
+ 1 │ (interesting) node
+ 2 │ node (interesting) "value"
+   ·                   ─
+   ╰────
+  help: remove the whitespace

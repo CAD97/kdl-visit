@@ -1,0 +1,12 @@
+
+  × errors occured while parsing
+
+Error: kdl::escaped_content (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.EscapedContent)
+
+  × line continuation was not followed by a newline
+   ╭────
+ 1 │ node \ "value"
+   ·      ┬ ───┬───
+   ·      │    ╰── try commenting this out
+   ·      ╰── this line continuation
+   ╰────

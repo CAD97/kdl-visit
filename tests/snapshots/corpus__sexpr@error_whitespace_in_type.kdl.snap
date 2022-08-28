@@ -1,0 +1,22 @@
+---
+source: tests/corpus.rs
+expression: "( interesting )node with=( interesting )\"value\"\n"
+---
+(document
+  (node
+    (trivia "(" " ")
+    (type interesting)
+    (trivia " ")
+    (error "type annotations must not contain whitespace")
+    (trivia ")")
+    (name node)
+    (trivia " ")
+    (property
+      (name with)
+      (trivia "=" "(" " ")
+      (type interesting)
+      (trivia " ")
+      (error "type annotations must not contain whitespace")
+      (trivia ")")
+      (value "value"))
+    (trivia "\n")))

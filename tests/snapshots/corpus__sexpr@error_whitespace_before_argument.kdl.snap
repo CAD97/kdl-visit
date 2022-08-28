@@ -1,0 +1,14 @@
+---
+source: tests/corpus.rs
+expression: "node 1\"oops\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (argument
+      (value 1))
+    (argument
+      (value "oops"))
+    (error "node arguments must be separated by whitespace")
+    (trivia "\n")))

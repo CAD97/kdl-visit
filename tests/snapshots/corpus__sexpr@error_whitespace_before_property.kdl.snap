@@ -1,0 +1,18 @@
+---
+source: tests/corpus.rs
+expression: "node prop1=\"oops\"prop2=\"oops\"\n"
+---
+(document
+  (node
+    (name node)
+    (trivia " ")
+    (property
+      (name prop1)
+      (trivia "=")
+      (value "oops"))
+    (property
+      (name prop2)
+      (trivia "=")
+      (value "oops"))
+    (error "node properties must be separated by whitespace")
+    (trivia "\n")))

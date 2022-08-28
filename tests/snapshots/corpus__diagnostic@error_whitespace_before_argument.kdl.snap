@@ -1,0 +1,17 @@
+---
+source: tests/corpus.rs
+expression: "node 1\"oops\"\n"
+---
+
+  × errors occured while parsing
+
+Error: kdl::whitespace::before_argument (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.MissingWhitespaceBeforeArgument)
+
+  × node arguments must be separated by whitespace
+   ╭────
+ 1 │ node 1"oops"
+   ·       ▲──┬──
+   ·       │  ╰── before this argument
+   ·       ╰── whitespace needed here
+   ╰────
+

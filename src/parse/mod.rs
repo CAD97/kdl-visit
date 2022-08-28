@@ -4,6 +4,7 @@ use {
         visit::{self, prelude::*},
         ParseError,
     },
+    scopeguard::guard,
 };
 
 mod lexer;
@@ -119,9 +120,11 @@ fn try_visit_child<'kdl>(
             | Token::False
             | Token::Null,
         ) => {
-            let mut node_visitor = visitor.visit_node();
-            visit_node(lexer, &mut node_visitor)?;
-            visitor.finish_node(node_visitor);
+            let mut node_visitor = guard(visitor.visit_node(), |node_visitor| {
+                visitor.finish_node(node_visitor);
+            });
+            visit_node(lexer, &mut *node_visitor)?;
+            drop(node_visitor);
             Ok(true)
         }
         _ => Ok(false),
@@ -467,9 +470,11 @@ fn try_visit_node_entry<'kdl>(
             visitor.visit_trivia(lexer.slice1());
             lexer.bump();
 
-            let mut children_visitor = visitor.visit_children();
-            visit_children(lexer, &mut children_visitor)?;
-            visitor.finish_children(children_visitor);
+            let mut children_visitor = guard(visitor.visit_children(), |children_visitor| {
+                visitor.finish_children(children_visitor);
+            });
+            visit_children(lexer, &mut *children_visitor)?;
+            drop(children_visitor);
 
             match lexer.token1() {
                 Some(Token::CloseBrace) => {
@@ -481,13 +486,13 @@ fn try_visit_node_entry<'kdl>(
                 Some(_) => unreachable!("visit_children should have consumed all tokens"),
                 #[allow(unreachable_patterns)]
                 Some(token) => {
-                    let error = ParseError::Generic {
+                    let err = ParseError::Generic {
                         span: lexer.span1().into(),
                         found: strings::a(token),
                         expected: strings::a(Token::CloseBrace),
                     };
-                    visitor.visit_error(error)?;
-                    return Err(error); // Fatal; should not happen
+                    visitor.visit_error(err)?;
+                    return Err(err); // Fatal; should not happen
                 }
                 None => {
                     visitor.visit_error(ParseError::Generic {
@@ -541,7 +546,9 @@ fn visit_node_property<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl visit::Node<'kdl>,
 ) -> Result<(), ParseError> {
-    let mut property_visitor = visitor.visit_property();
+    let mut property_visitor = guard(visitor.visit_property(), |property_visitor| {
+        visitor.finish_property(property_visitor);
+    });
     let name = parse_identifier(lexer, property_visitor.opaque())?;
     property_visitor.visit_name(name);
 
@@ -579,13 +586,13 @@ fn visit_node_property<'kdl>(
     }
 
     if !try_visit_value(lexer, property_visitor.opaque())? {
-        visitor.visit_error(ParseError::MissingValue {
+        property_visitor.visit_error(ParseError::MissingValue {
             span: eq_span.into(),
             _private: (),
         })?;
     }
-    visitor.finish_property(property_visitor);
 
+    drop(property_visitor);
     Ok(())
 }
 
@@ -596,7 +603,10 @@ fn visit_node_argument<'kdl>(
     lexer: &mut Lexer<'kdl>,
     visitor: &mut impl visit::Node<'kdl>,
 ) -> Result<(), ParseError> {
-    let mut argument_visitor = visitor.visit_argument();
+    let mut argument_visitor = guard(visitor.visit_argument(), |argument_visitor| {
+        visitor.finish_argument(argument_visitor);
+    });
+
     match lexer.token1() {
         Some(Token::String(_) | Token::Number | Token::True | Token::False | Token::Null) => {
             let start = lexer.span1().start;
@@ -612,15 +622,16 @@ fn visit_node_argument<'kdl>(
             {
                 let end = lexer.span1().start;
                 if matches!(lexer.token1(), Some(Token::Whitespace)) {
-                    visitor.visit_trivia(lexer.slice1());
+                    argument_visitor.visit_trivia(lexer.slice1());
                     lexer.bump();
                 }
-                visitor.visit_error(ParseError::UnquotedPropertyName {
+                argument_visitor.visit_error(ParseError::UnquotedPropertyName {
                     span: (start..end).into(),
                     _private: (),
                 })?;
-                visitor.visit_trivia(lexer.slice1());
+                argument_visitor.visit_trivia(lexer.slice1());
                 lexer.bump();
+                try_visit_value(lexer, &mut argument_visitor.only_trivia())?;
             }
         }
 
@@ -630,12 +641,21 @@ fn visit_node_argument<'kdl>(
             // This wants special handling for (ty)name="value".
         }
 
+        Some(Token::BareIdentifier) => {
+            argument_visitor.visit_error(ParseError::UnquotedValue {
+                span: lexer.span1().into(),
+                _private: (),
+            })?;
+            argument_visitor.visit_trivia(lexer.slice1());
+            lexer.bump();
+        }
+
         got => {
             unreachable!("expected (type-annotated)value, got {got:?}");
         }
     }
 
-    visitor.finish_argument(argument_visitor);
+    drop(argument_visitor);
     Ok(())
 }
 
@@ -669,19 +689,31 @@ fn try_visit_value<'kdl>(
                     visitor.visit_value(value);
                 }
                 Some(Token::BareIdentifier) => {
-                    return Err(ParseError::UnquotedValue {
+                    visitor.visit_error(ParseError::UnquotedValue {
                         span: lexer.span1().into(),
                         _private: (),
-                    });
+                    })?;
+                    visitor.visit_trivia(lexer.slice1());
+                    lexer.bump();
                 }
                 got => {
-                    return Err(ParseError::Generic {
+                    let err = ParseError::Generic {
                         span: lexer.span1().into(),
                         found: got.map(strings::a).unwrap_or(strings::eof),
                         expected: strings::a_value,
-                    });
+                    };
+                    visitor.visit_error(err)?;
+                    return Err(err);
                 }
             }
+        }
+        Some(Token::BareIdentifier) => {
+            visitor.visit_error(ParseError::UnquotedValue {
+                span: lexer.span1().into(),
+                _private: (),
+            })?;
+            visitor.visit_trivia(lexer.slice1());
+            lexer.bump();
         }
         _ => return Ok(false),
     }
@@ -742,14 +774,13 @@ fn parse_broken_string<'kdl>(
 
     if source.bytes().next() == Some(b'r') {
         let hash_count = source[1..].bytes().take_while(|&b| b == b'#').count();
-        let guess_end = (1..hash_count.min(LONG_END_RAW_STRING.len()))
+        let guess_end = (1..hash_count.min(LONG_END_RAW_STRING.len() - 1))
             .rev()
-            .filter_map(|count| {
+            .find_map(|count| {
                 source
-                    .find(&LONG_END_RAW_STRING[..count + 1])
+                    .rfind(&LONG_END_RAW_STRING[..count + 1])
                     .map(|i| i..i + count + 1)
-            })
-            .next();
+            });
         let err = ParseError::UnclosedRawString {
             span: (start..start + hash_count + 2).into(),
             span2: guess_end.map(Into::into),
