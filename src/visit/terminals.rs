@@ -110,14 +110,26 @@ impl<'kdl> Number<'kdl> {
     }
 
     #[cfg(feature = "decimal")]
-    pub fn decimal(self) -> rust_decimal::Decimal {
-        use core::str::FromStr;
-        // TODO: add handling for scientific notation
-        rust_decimal::Decimal::from_str(self.source).unwrap_or(rust_decimal::Decimal::ZERO)
+    pub fn decimal(self) -> rust_decimal::Result<rust_decimal::Decimal> {
+        use rust_decimal::Decimal;
+        match self.source.get(..2) {
+            Some("0x") => Decimal::from_str_radix(&self.source[2..], 16),
+            Some("0o") => Decimal::from_str_radix(&self.source[2..], 8),
+            Some("0b") => Decimal::from_str_radix(&self.source[2..], 2),
+            _ => {
+                if self.source.contains('e') {
+                    dbg!(self.source());
+                    Decimal::from_scientific(self.source())
+                } else {
+                    use core::str::FromStr;
+                    Decimal::from_str(self.source())
+                }
+            }
+        }
     }
 
     #[cfg(feature = "lexical")]
-    pub fn value<N: hidden::PrimitiveNumber>(self) -> N {
+    pub fn value<N: hidden::PrimitiveNumber>(self) -> Option<N> {
         todo!()
     }
 }

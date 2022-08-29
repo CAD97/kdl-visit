@@ -29,10 +29,6 @@ where
 // }
 // pub(crate) use unreachable_unsafe;
 
-pub(crate) unsafe fn erase_lifetime<T: ?Sized>(x: &T) -> &'static T {
-    &*(x as *const T)
-}
-
 // macro_rules! display {
 //     ($lit:literal $($tt:tt)*) => {
 //         $crate::utils::Display(move |f| {

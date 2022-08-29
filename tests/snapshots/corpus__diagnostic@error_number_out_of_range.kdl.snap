@@ -1,0 +1,37 @@
+---
+source: tests/corpus.rs
+expression: "numbers \\\n  too-positive=1e100 \\\n  too-negative=-1e100 \\\n  too-small=1e-100\n"
+---
+
+  × errors occured while parsing
+
+Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.NumberOutOfRange)
+
+  × unrepresentable number
+   ╭─[1:1]
+ 1 │ numbers \
+ 2 │   too-positive=1e100 \
+   ·                ──┬──
+   ·                  ╰── scale exceeds maximum precision
+ 3 │   too-negative=-1e100 \
+   ╰────
+Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.NumberOutOfRange)
+
+  × unrepresentable number
+   ╭─[2:1]
+ 2 │   too-positive=1e100 \
+ 3 │   too-negative=-1e100 \
+   ·                ───┬──
+   ·                   ╰── scale exceeds maximum precision
+ 4 │   too-small=1e-100
+   ╰────
+Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.NumberOutOfRange)
+
+  × unrepresentable number
+   ╭─[3:1]
+ 3 │   too-negative=-1e100 \
+ 4 │   too-small=1e-100
+   ·             ───┬──
+   ·                ╰── scale exceeds maximum precision
+   ╰────
+

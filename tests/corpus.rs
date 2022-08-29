@@ -23,42 +23,15 @@ fn run_sexpr_tests() {
     }));
 }
 
-#[test]
+#[cfg(feature = "ast")]
 #[cfg(feature = "miette")]
-fn run_error_tests() {
-    insta::glob!("corpus/*.kdl", |path| with_setup(|| {
-        let input = std::fs::read_to_string(path).unwrap();
-        let input = input.replace("\r\n", "\n");
-        let mut errors = Vec::default();
-        visit_kdl_string(&input, kdl_visit::CollectErrors::new(&mut errors)).ok();
-
-        if !errors.is_empty() {
-            let theme = miette::GraphicalReportHandler::new()
-                .with_theme(miette::GraphicalTheme::unicode_nocolor())
-                .with_links(false);
-            let mut report = String::new();
-            let errors = kdl_visit::ParseErrors {
-                source: &*input,
-                errors,
-            };
-            theme.render_report(&mut report, &errors).unwrap();
-            report = report.replace(env!("CARGO_PKG_VERSION"), "latest");
-            insta::assert_snapshot!("diagnostic", report, &input);
-
-            if let Some(stem) = path.file_stem() {
-                let stem = stem.to_string_lossy();
-                if stem.starts_with("error_") {
-                    // record these for docs, but tolerate errors (e.g. w.o. fs)
-                    let _ = std::fs::write(
-                        path.parent()
-                            .unwrap()
-                            .join(format!("../examples/{stem}.stderr")),
-                        report,
-                    );
-                }
-            }
-        }
-    }));
+fn render_diagnostic(diagnostic: &dyn miette::Diagnostic) -> String {
+    let handler = miette::GraphicalReportHandler::new()
+        .with_theme(miette::GraphicalTheme::unicode_nocolor())
+        .with_links(false);
+    let mut buf = String::new();
+    handler.render_report(&mut buf, diagnostic).unwrap();
+    buf
 }
 
 #[test]
@@ -67,9 +40,32 @@ fn run_ast_tests() {
     insta::glob!("corpus/*.kdl", |path| with_setup(|| {
         let input = std::fs::read_to_string(path).unwrap();
         let input = input.replace("\r\n", "\n");
-        if let Ok(doc) = kdl_visit::ast::Document::parse(input) {
-            let report = format!("{doc:#?}");
-            insta::assert_snapshot!("ast", report, doc.source());
+        match kdl_visit::ast::Document::from_str(&input) {
+            Ok(doc) => {
+                let report = format!("{doc:#?}");
+                insta::assert_snapshot!("ast", report, &input);
+            }
+            #[cfg(feature = "miette")]
+            Err(errors) => {
+                let mut report = render_diagnostic(&errors);
+                report = report.replace(env!("CARGO_PKG_VERSION"), "latest");
+                insta::assert_snapshot!("diagnostic", report, &input);
+
+                if let Some(stem) = path.file_stem() {
+                    let stem = stem.to_string_lossy();
+                    if stem.starts_with("error_") {
+                        // record these for docs, but tolerate errors (e.g. w.o. fs)
+                        let _ = std::fs::write(
+                            path.parent()
+                                .unwrap()
+                                .join(format!("../examples/{stem}.stderr")),
+                            report,
+                        );
+                    }
+                }
+            }
+            #[cfg(not(feature = "miette"))]
+            Err(_) => {}
         }
     }));
 }

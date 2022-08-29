@@ -1,6 +1,6 @@
 ---
 source: tests/corpus.rs
-expression: "r#\"unclosed\"\n"
+expression: "r##\"unclosed\"#\n"
 ---
 (document
   (node

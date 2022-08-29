@@ -1,11 +1,11 @@
 ---
 source: tests/corpus.rs
-expression: "num 1.234e-42\n"
+expression: "num 1.234e-25\n"
 ---
 (document
   (node
     (name num)
     (trivia " ")
     (argument
-      (value 1.234e-42))
+      (value 1.234e-25))
     (trivia "\n")))

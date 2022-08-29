@@ -1,0 +1,23 @@
+---
+source: tests/corpus.rs
+expression: "numbers \\\n  too-positive=1e100 \\\n  too-negative=-1e100 \\\n  too-small=1e-100\n"
+---
+(document
+  (node
+    (name numbers)
+    (trivia " " "\\" "\n" "  ")
+    (property
+      (name too-positive)
+      (trivia "=")
+      (value 1e100))
+    (trivia " " "\\" "\n" "  ")
+    (property
+      (name too-negative)
+      (trivia "=")
+      (value -1e100))
+    (trivia " " "\\" "\n" "  ")
+    (property
+      (name too-small)
+      (trivia "=")
+      (value 1e-100))
+    (trivia "\n")))

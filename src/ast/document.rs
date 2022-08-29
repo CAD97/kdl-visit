@@ -1,19 +1,19 @@
 use {
     super::*,
-    crate::{utils::erase_lifetime, visit, visit_kdl_string, ParseError, ParseErrors},
+    crate::{visit, visit_kdl_string, ParseError, ParseErrors},
     alloc::vec::Vec,
-    core::fmt,
+    core::{fmt, str::FromStr},
+    rust_decimal::{Decimal, Error as DecimalError},
 };
 
 pub struct Document<'kdl> {
-    src: Cow<'kdl, str>,
-    tree: Vec<TreeEntry<'kdl>>,
+    pub(super) tree: Vec<TreeEntry<'kdl>>,
 }
 
 impl<'kdl> Document<'kdl> {
-    pub fn parse(src: impl Into<Cow<'kdl, str>>) -> Result<Self, ParseErrors<Cow<'kdl, str>>> {
+    #[allow(clippy::should_implement_trait)] // refinement to avoid copying
+    pub fn from_str(source: &'kdl str) -> Result<Self, ParseErrors<&'kdl str>> {
         let mut doc = Document {
-            src: src.into(),
             tree: vec![TreeEntry {
                 span: 0..0,
                 what: TreeEntryKind::Nodes {
@@ -24,7 +24,7 @@ impl<'kdl> Document<'kdl> {
         let mut errors = vec![];
 
         let _ = visit_kdl_string(
-            unsafe { erase_lifetime::<str>(&doc.src) },
+            source,
             CollectAst {
                 tree: Some(&mut doc.tree),
                 errors: Some(&mut errors),
@@ -35,15 +35,8 @@ impl<'kdl> Document<'kdl> {
         if errors.is_empty() {
             Ok(doc)
         } else {
-            Err(ParseErrors {
-                source: doc.src,
-                errors,
-            })
+            Err(ParseErrors { source, errors })
         }
-    }
-
-    pub fn source(&self) -> &str {
-        &self.src
     }
 
     pub fn nodes(&self) -> &'_ Nodes<'_> {
@@ -61,6 +54,19 @@ impl core::fmt::Debug for Document<'_> {
             f.debug_struct("Document")
                 .field("tree", &self.tree)
                 .finish_non_exhaustive()
+        }
+    }
+}
+
+impl FromStr for Document<'static> {
+    type Err = ParseErrors;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match Document::from_str(s) {
+            Ok(doc) => Ok(doc.into_owned()),
+            Err(err) => Err(ParseErrors {
+                source: err.source.into(),
+                errors: err.errors,
+            }),
         }
     }
 }
@@ -258,13 +264,38 @@ impl<'kdl> visit::Argument<'kdl> for CollectAst<'_, 'kdl> {
     }
 
     fn visit_value(&mut self, val: visit::Value<'kdl>) {
-        let attr_entry = self.attr_entry();
-        *attr_entry.value = match val {
+        let pos = self.head_entry().span.end;
+        let decimal_value = match val {
             visit::Value::String(s) => TreeEntryValue::String(s.value()),
-            visit::Value::Number(n) => TreeEntryValue::Number(n.decimal()),
             visit::Value::Boolean(b) => TreeEntryValue::Boolean(b),
             visit::Value::Null => TreeEntryValue::Null,
+            visit::Value::Number(n) => TreeEntryValue::Number({
+                match n.decimal() {
+                    Ok(n) => n,
+                    Err(e) => {
+                        self.errors().push(ParseError::NumberOutOfRange {
+                            span: (pos..pos + val.source().len()).into(),
+                            why: match e {
+                                DecimalError::ExceedsMaximumPossibleValue => {
+                                    "exceeds maximum possible value"
+                                }
+                                DecimalError::LessThanMinimumPossibleValue => {
+                                    "less than minimum possible value"
+                                }
+                                DecimalError::Underflow => "underflow",
+                                DecimalError::ScaleExceedsMaximumPrecision(_) => {
+                                    "scale exceeds maximum precision"
+                                }
+                                _ => "too thicc", // should never happen
+                            },
+                        });
+                        Decimal::ZERO
+                    }
+                }
+            }),
         };
+        let attr_entry = self.attr_entry();
+        *attr_entry.value = decimal_value;
         attr_entry.span.end += val.source().len();
     }
 
@@ -292,14 +323,7 @@ impl<'kdl> visit::Property<'kdl> for CollectAst<'_, 'kdl> {
     }
 
     fn visit_value(&mut self, val: visit::Value<'kdl>) {
-        let attr_entry = self.attr_entry();
-        *attr_entry.value = match val {
-            visit::Value::String(s) => TreeEntryValue::String(s.value()),
-            visit::Value::Number(n) => TreeEntryValue::Number(n.decimal()),
-            visit::Value::Boolean(b) => TreeEntryValue::Boolean(b),
-            visit::Value::Null => TreeEntryValue::Null,
-        };
-        attr_entry.span.end += val.source().len();
+        visit::Argument::visit_value(self, val)
     }
 
     fn visit_error(&mut self, error: ParseError) -> Result<(), ParseError> {

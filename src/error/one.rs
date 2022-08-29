@@ -375,6 +375,39 @@ pub enum ParseError {
         here: usize,
     },
 
+    /// A number exceeded implementation limits. Only emitted when parsing to an
+    /// AST; the visitor does not emit this error by itself.
+    ///
+    /// # Examples
+    ///
+    /// ```kdl
+    #[doc = include_str!("../../tests/corpus/error_number_out_of_range.kdl")]
+    /// ```
+    ///
+    /// ```text
+    #[doc = include_str!("../../tests/examples/error_number_out_of_range.stderr")]
+    /// ```
+    ///
+    /// # Potential fixes
+    ///
+    /// This is a fundamental implementation limit of the kdl-visit's KDL ast
+    /// representation.
+    #[displaydoc("unrepresentable number")]
+    #[cfg_attr(
+        feature = "miette",
+        diagnostic(
+            code(kdl::number_out_of_range),
+            help("precision between 1e-20 and 1e+20 is supported")
+        )
+    )]
+    #[cfg(feature = "decimal")]
+    NumberOutOfRange {
+        #[cfg_attr(feature = "miette", label("{why}"))]
+        span: ErrorSpan,
+        #[doc(hidden)]
+        why: &'static str,
+    },
+
     /// A string literal was not closed.
     ///
     /// # Examples

@@ -1,29 +1,44 @@
 use {
     crate::{visit, ParseError},
-    alloc::{string::String, vec::Vec},
+    alloc::{borrow::Cow, string::String, vec::Vec},
     core::fmt,
     displaydoc::Display,
 };
 
+#[cfg(not(feature = "miette"))]
+mod hidden {
+    use super::*;
+    pub trait SourceCode {}
+    impl SourceCode for &'_ str {}
+    impl SourceCode for String {}
+    impl SourceCode for Cow<'_, str> {}
+}
+
+#[cfg(not(feature = "miette"))]
+use hidden::SourceCode;
+#[cfg(feature = "miette")]
+use miette::SourceCode;
+
 #[derive(Debug, Display, Clone)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
 #[displaydoc("errors occured while parsing")]
-pub struct ParseErrors<#[cfg(feature = "miette")] Source: fmt::Debug + miette::SourceCode = String>
-{
-    #[cfg(feature = "miette")]
-    #[source_code]
+pub struct ParseErrors<Source: fmt::Debug + SourceCode = String> {
+    #[cfg_attr(feature = "miette", source_code)]
     pub source: Source,
-    #[cfg(not(feature = "miette"))]
-    pub source: String,
     #[cfg_attr(feature = "miette", related)]
     pub errors: Vec<ParseError>,
 }
 
-#[cfg(all(feature = "std", not(feature = "miette")))]
-impl std::error::Error for ParseErrors {}
+impl<Source: fmt::Debug + SourceCode> std::error::Error for ParseErrors<Source> {}
 
-#[cfg(feature = "miette")]
-impl<Source: fmt::Debug + miette::SourceCode> std::error::Error for ParseErrors<Source> {}
+impl ParseErrors<Cow<'_, str>> {
+    pub fn into_owned(self) -> ParseErrors<String> {
+        ParseErrors {
+            source: self.source.into_owned(),
+            errors: self.errors,
+        }
+    }
+}
 
 #[derive(Debug, Default)]
 pub struct CollectErrors<'a> {

@@ -5,6 +5,7 @@ use {
 };
 
 mod document;
+mod into_owned;
 mod nodes;
 mod values;
 

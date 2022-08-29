@@ -1,0 +1,57 @@
+---
+source: tests/corpus.rs
+expression: "my-hex 0xdeadbeef\nmy-octal 0o755\nmy-binary 0b10101101\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..18,
+            name: "my-hex",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 7..17,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        3735928559,
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 18..33,
+            name: "my-octal",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 27..32,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        493,
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 33..54,
+            name: "my-binary",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 43..53,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        173,
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "num 1.234e-25\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..14,
+            name: "num",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 4..13,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        0.0000000000000000000000001234,
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

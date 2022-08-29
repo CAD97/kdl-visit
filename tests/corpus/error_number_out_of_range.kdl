@@ -1,0 +1,4 @@
+numbers \
+  too-positive=1e100 \
+  too-negative=-1e100 \
+  too-small=1e-100
