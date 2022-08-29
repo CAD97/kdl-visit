@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "other-raw r#\"hello\"world\"#\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..27,
+            name: "other-raw",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 10..26,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "hello\"world",
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

@@ -1,5 +1,10 @@
 #![no_std]
 #![warn(missing_debug_implementations, unreachable_pub)]
+#![cfg_attr(feature = "unstable-extern-type", feature(extern_types))]
+
+#[cfg(feature = "unstable-extern-type")]
+#[cfg(not(allow_crate_unstable))]
+compile_error!("feature unstable-extern-type is unstable and requires --cfg allow_crate_unstable");
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]
@@ -10,7 +15,8 @@ extern crate alloc;
 #[macro_use]
 extern crate std;
 
-// mod components;
+#[cfg(feature = "ast")]
+pub mod ast;
 mod error;
 mod parse;
 mod utils;

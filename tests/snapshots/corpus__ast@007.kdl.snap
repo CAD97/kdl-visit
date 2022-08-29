@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "string \"my\nmultiline\nvalue\"\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..28,
+            name: "string",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 7..27,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "my\nmultiline\nvalue",
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

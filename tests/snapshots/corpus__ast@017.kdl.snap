@@ -1,0 +1,18 @@
+---
+source: tests/corpus.rs
+expression: "node{}\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..6,
+            name: "node",
+            ty: None,
+            attrs: [],
+            children: Some(
+                [],
+            ),
+        },
+    ],
+    ..
+}

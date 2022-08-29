@@ -1,0 +1,27 @@
+---
+source: tests/corpus.rs
+expression: "// C style\n\n/*\nC style multiline\n*/\n\ntag /*foo=true*/ bar=false\n\n/*/*\nhello\n*/*/\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 37..65,
+            name: "tag",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 54..63,
+                    name: Some(
+                        "bar",
+                    ),
+                    ty: None,
+                    value: Boolean(
+                        false,
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

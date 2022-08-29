@@ -8,4 +8,4 @@ Error: kdl::invalid_escape (https://docs.rs/kdl-visit/latest/kdl_visit/enum.Pars
  1 │ invalid escape="\'"
    ·                 ──
    ╰────
-  help: valid escapes are \n, \r, \t, \\, \/, \", \b, \f, and \u{XXXX}
+  help: valid escapes are \n, \r, \t, \\, \", \b, \f, and \u{XXXX}

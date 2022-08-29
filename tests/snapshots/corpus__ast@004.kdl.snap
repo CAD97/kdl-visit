@@ -1,0 +1,70 @@
+---
+source: tests/corpus.rs
+expression: "contents {\n  section \"First section\" {\n    paragraph \"This is the first paragraph\"\n    paragraph \"This is the second paragraph\"\n  }\n}\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..133,
+            name: "contents",
+            ty: None,
+            attrs: [],
+            children: Some(
+                [
+                    Node {
+                        span: 13..131,
+                        name: "section",
+                        ty: None,
+                        attrs: [
+                            Attribute {
+                                span: 21..36,
+                                name: None,
+                                ty: None,
+                                value: String(
+                                    "First section",
+                                ),
+                            },
+                        ],
+                        children: Some(
+                            [
+                                Node {
+                                    span: 43..83,
+                                    name: "paragraph",
+                                    ty: None,
+                                    attrs: [
+                                        Attribute {
+                                            span: 53..82,
+                                            name: None,
+                                            ty: None,
+                                            value: String(
+                                                "This is the first paragraph",
+                                            ),
+                                        },
+                                    ],
+                                    children: None,
+                                },
+                                Node {
+                                    span: 87..128,
+                                    name: "paragraph",
+                                    ty: None,
+                                    attrs: [
+                                        Attribute {
+                                            span: 97..127,
+                                            name: None,
+                                            ty: None,
+                                            value: String(
+                                                "This is the second paragraph",
+                                            ),
+                                        },
+                                    ],
+                                    children: None,
+                                },
+                            ],
+                        ),
+                    },
+                ],
+            ),
+        },
+    ],
+    ..
+}

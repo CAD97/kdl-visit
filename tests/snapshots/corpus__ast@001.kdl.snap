@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "title \"Hello, World\"\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..21,
+            name: "title",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 6..20,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "Hello, World",
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

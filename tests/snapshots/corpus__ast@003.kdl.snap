@@ -1,0 +1,45 @@
+---
+source: tests/corpus.rs
+expression: "author \"Alex Monad\" email=\"alex@example.com\" active=true\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..57,
+            name: "author",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 7..19,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "Alex Monad",
+                    ),
+                },
+                Attribute {
+                    span: 20..44,
+                    name: Some(
+                        "email",
+                    ),
+                    ty: None,
+                    value: String(
+                        "alex@example.com",
+                    ),
+                },
+                Attribute {
+                    span: 45..56,
+                    name: Some(
+                        "active",
+                    ),
+                    ty: None,
+                    value: Boolean(
+                        true,
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

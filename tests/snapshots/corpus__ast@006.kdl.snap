@@ -1,0 +1,41 @@
+---
+source: tests/corpus.rs
+expression: "node \"this\\nhas\\tescapes\"\nother r\"C:\\Users\\zkat\\\"\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..26,
+            name: "node",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 5..25,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "\"this\nhas\tescapes\"",
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 26..50,
+            name: "other",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 32..49,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "C:\\Users\\zkat\\",
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

@@ -1,0 +1,30 @@
+---
+source: tests/corpus.rs
+expression: "node1; node2; node3;\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..6,
+            name: "node1",
+            ty: None,
+            attrs: [],
+            children: None,
+        },
+        Node {
+            span: 7..13,
+            name: "node2",
+            ty: None,
+            attrs: [],
+            children: None,
+        },
+        Node {
+            span: 14..20,
+            name: "node3",
+            ty: None,
+            attrs: [],
+            children: None,
+        },
+    ],
+    ..
+}

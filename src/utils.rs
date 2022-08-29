@@ -3,7 +3,7 @@
 //     core::{fmt, ops::Range},
 //     sptr::Strict,
 // };
-use core::fmt;
+use core::fmt::{self, Write};
 
 pub(crate) struct Display<F>(pub(crate) F)
 where
@@ -16,6 +16,21 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         (self.0)(f)
     }
+}
+
+// macro_rules! unreachable_unsafe {
+//     ($($args:tt)*) => {
+//         if cfg!(debug_assertions) {
+//             unreachable!($($args)*)
+//         } else {
+//             ::core::hint::unreachable_unchecked()
+//         }
+//     };
+// }
+// pub(crate) use unreachable_unsafe;
+
+pub(crate) unsafe fn erase_lifetime<T: ?Sized>(x: &T) -> &'static T {
+    &*(x as *const T)
 }
 
 // macro_rules! display {
@@ -35,77 +50,46 @@ where
 //     offset..offset + inner.len()
 // }
 
-// pub(crate) fn unescape(mut src: &str) -> Result<String, &str> {
-//     let mut dst = String::with_capacity(src.len());
-//     loop {
-//         match src.find('\\') {
-//             None => {
-//                 dst.push_str(src);
-//                 break;
-//             }
-//             Some(i) => {
-//                 dst.push_str(&src[..i]);
-//                 src = &src[i..];
-//                 let as_bytes = src.as_bytes();
-//                 match as_bytes.get(..2).unwrap_or(as_bytes) {
-//                     br"" => unreachable!(),
-//                     br"\" => return Err(src),
-//                     [_] => unreachable!(),
-//                     [_, _, _, ..] => unreachable!(),
-//                     br"\n" => {
-//                         dst.push('\n');
-//                         src = &src[2..];
-//                     }
-//                     br"\r" => {
-//                         dst.push('\r');
-//                         src = &src[2..];
-//                     }
-//                     br"\t" => {
-//                         dst.push('\t');
-//                         src = &src[2..];
-//                     }
-//                     br"\\" => {
-//                         dst.push('\\');
-//                         src = &src[2..];
-//                     }
-//                     br"\/" => {
-//                         dst.push('/');
-//                         src = &src[2..];
-//                     }
-//                     br#"\""# => {
-//                         dst.push('"');
-//                         src = &src[2..];
-//                     }
-//                     br#"\b"# => {
-//                         dst.push('\u{8}');
-//                         src = &src[2..];
-//                     }
-//                     br#"\f"# => {
-//                         dst.push('\u{C}');
-//                         src = &src[2..];
-//                     }
-//                     br"\u" => match src.find('}') {
-//                         None => return Err(src),
-//                         Some(escape_close) => {
-//                             let escape = &src[..escape_close + 1];
-//                             src = &src[escape_close + 1..];
-//                             let codepoint = u32::from_str_radix(&escape[2..escape_close], 16)
-//                                 .map_err(|_| escape)?;
-//                             let ch = char::from_u32(codepoint).ok_or(escape)?;
-//                             dst.push(ch);
-//                         }
-//                     },
-//                     _ => {
-//                         let invalid_escape_end =
-//                             src.char_indices().nth(2).map_or(src.len(), |(i, _)| i);
-//                         return Err(&src[..invalid_escape_end]);
-//                     }
-//                 }
-//             }
-//         }
-//     }
-//     Ok(dst)
-// }
+pub(crate) fn unescape(src: &str) -> impl '_ + fmt::Display {
+    Display(move |f| {
+        let mut src = src;
+        loop {
+            match src.find('\\') {
+                None => {
+                    f.write_str(src)?;
+                    break;
+                }
+                Some(i) => {
+                    f.write_str(&src[..i])?;
+                    src = &src[i + 1..];
+                    match src.as_bytes().first().ok_or(fmt::Error)? {
+                        b'n' => f.write_char('\n')?,
+                        b'r' => f.write_char('\r')?,
+                        b't' => f.write_char('\t')?,
+                        b'\\' => f.write_char('\\')?,
+                        b'"' => f.write_char('"')?,
+                        b'b' => f.write_char('\u{8}')?,
+                        b'f' => f.write_char('\u{C}')?,
+                        b'u' if src.as_bytes().get(1) == Some(&b'{') => match src.find('}') {
+                            None => return Err(fmt::Error),
+                            Some(ix) => {
+                                let bracketed = &src[2..ix];
+                                src = &src[ix..];
+                                let codepoint =
+                                    u32::from_str_radix(bracketed, 16).map_err(|_| fmt::Error)?;
+                                let ch = char::from_u32(codepoint).ok_or(fmt::Error)?;
+                                f.write_char(ch)?;
+                            }
+                        },
+                        _ => return Err(fmt::Error),
+                    }
+                    src = &src[1..];
+                }
+            }
+        }
+        Ok(())
+    })
+}
 
 // pub(crate) fn valid_bareword(s: &str) -> bool {
 //     fn looks_like_number(s: &str) -> bool {

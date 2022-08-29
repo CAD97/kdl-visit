@@ -1,0 +1,112 @@
+---
+source: tests/corpus.rs
+expression: "numbers (u8)10 (i32)20 myfloat=(f32)1.5 {\n  strings (uuid)\"123e4567-e89b-12d3-a456-426614174000\" (date)\"2021-02-03\" filter=(regex)r\"$\\d+\"\n  (author)person name=\"Alex\"\n}\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..168,
+            name: "numbers",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 8..14,
+                    name: None,
+                    ty: Some(
+                        "u8",
+                    ),
+                    value: Number(
+                        10,
+                    ),
+                },
+                Attribute {
+                    span: 15..22,
+                    name: None,
+                    ty: Some(
+                        "i32",
+                    ),
+                    value: Number(
+                        20,
+                    ),
+                },
+                Attribute {
+                    span: 23..39,
+                    name: Some(
+                        "myfloat",
+                    ),
+                    ty: Some(
+                        "f32",
+                    ),
+                    value: Number(
+                        1.5,
+                    ),
+                },
+            ],
+            children: Some(
+                [
+                    Node {
+                        span: 44..138,
+                        name: "strings",
+                        ty: None,
+                        attrs: [
+                            Attribute {
+                                span: 52..96,
+                                name: None,
+                                ty: Some(
+                                    "uuid",
+                                ),
+                                value: String(
+                                    "123e4567-e89b-12d3-a456-426614174000",
+                                ),
+                            },
+                            Attribute {
+                                span: 97..115,
+                                name: None,
+                                ty: Some(
+                                    "date",
+                                ),
+                                value: String(
+                                    "2021-02-03",
+                                ),
+                            },
+                            Attribute {
+                                span: 116..137,
+                                name: Some(
+                                    "filter",
+                                ),
+                                ty: Some(
+                                    "regex",
+                                ),
+                                value: String(
+                                    "$\\d+",
+                                ),
+                            },
+                        ],
+                        children: None,
+                    },
+                    Node {
+                        span: 140..167,
+                        name: "person",
+                        ty: Some(
+                            "author",
+                        ),
+                        attrs: [
+                            Attribute {
+                                span: 155..166,
+                                name: Some(
+                                    "name",
+                                ),
+                                ty: None,
+                                value: String(
+                                    "Alex",
+                                ),
+                            },
+                        ],
+                        children: None,
+                    },
+                ],
+            ),
+        },
+    ],
+    ..
+}

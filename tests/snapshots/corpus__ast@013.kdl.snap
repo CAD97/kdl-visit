@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "// This entire node and its children are all commented out.\n/-mynode \"foo\" key=1 {\n  a\n  b\n  c\n}\n\nmynode /-\"commented\" \"not commented\" /-key=\"value\" /-{\n  a\n  b\n}\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 98..163,
+            name: "mynode",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 119..134,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "not commented",
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

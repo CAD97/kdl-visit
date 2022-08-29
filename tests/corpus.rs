@@ -4,9 +4,15 @@ use {
     tracing_subscriber::prelude::*,
 };
 
+fn with_setup(f: impl FnOnce()) {
+    let collector = tracing_subscriber::registry().with(tracing_tree::HierarchicalLayer::new(2));
+    let _guard = collector.set_default();
+    f();
+}
+
 #[test]
 fn run_sexpr_tests() {
-    insta::glob!("corpus/*.kdl", |path| {
+    insta::glob!("corpus/*.kdl", |path| with_setup(|| {
         let input = std::fs::read_to_string(path).unwrap();
         let input = input.replace("\r\n", "\n");
         let dump = RefCell::new(String::new());
@@ -14,17 +20,13 @@ fn run_sexpr_tests() {
         visit_kdl_string(&input, builder).ok();
         let parsed = &*dump.into_inner();
         insta::assert_snapshot!("sexpr", parsed, &input);
-    });
+    }));
 }
 
 #[test]
 #[cfg(feature = "miette")]
 fn run_error_tests() {
-    tracing::subscriber::set_global_default(
-        tracing_subscriber::registry().with(tracing_tree::HierarchicalLayer::new(2)),
-    )
-    .unwrap();
-    insta::glob!("corpus/*.kdl", |path| {
+    insta::glob!("corpus/*.kdl", |path| with_setup(|| {
         let input = std::fs::read_to_string(path).unwrap();
         let input = input.replace("\r\n", "\n");
         let mut errors = Vec::default();
@@ -56,7 +58,20 @@ fn run_error_tests() {
                 }
             }
         }
-    });
+    }));
+}
+
+#[test]
+#[cfg(feature = "ast")]
+fn run_ast_tests() {
+    insta::glob!("corpus/*.kdl", |path| with_setup(|| {
+        let input = std::fs::read_to_string(path).unwrap();
+        let input = input.replace("\r\n", "\n");
+        if let Ok(doc) = kdl_visit::ast::Document::parse(input) {
+            let report = format!("{doc:#?}");
+            insta::assert_snapshot!("ast", report, doc.source());
+        }
+    }));
 }
 
 #[derive(Clone, Copy)]

@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "bignum 1_000_000\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..17,
+            name: "bignum",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 7..16,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        1000000,
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

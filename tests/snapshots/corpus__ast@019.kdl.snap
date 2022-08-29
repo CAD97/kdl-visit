@@ -1,0 +1,25 @@
+---
+source: tests/corpus.rs
+expression: "node/-\"val\"\"val\"\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..17,
+            name: "node",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 11..16,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "val",
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}

@@ -170,7 +170,7 @@ pub enum ParseError {
         feature = "miette",
         diagnostic(
             code(kdl::invalid_escape),
-            help(r#"valid escapes are \n, \r, \t, \\, \/, \", \b, \f, and \u{{XXXX}}"#)
+            help(r#"valid escapes are \n, \r, \t, \\, \", \b, \f, and \u{{XXXX}}"#)
         )
     )]
     #[non_exhaustive]

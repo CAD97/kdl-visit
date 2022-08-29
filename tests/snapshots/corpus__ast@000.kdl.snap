@@ -1,0 +1,8 @@
+---
+source: tests/corpus.rs
+expression: ""
+---
+Document {
+    nodes: [],
+    ..
+}

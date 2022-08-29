@@ -123,7 +123,7 @@ fn string(lex: &mut logos::Lexer<Token>) -> bool {
         }
 
         match lex.remainder().bytes().next() {
-            Some(b'n' | b'r' | b't' | b'\\' | b'/' | b'"' | b'b' | b'f') => lex.bump(1),
+            Some(b'n' | b'r' | b't' | b'\\' | b'"' | b'b' | b'f') => lex.bump(1),
             Some(b'u') => {
                 lex.bump(1);
                 if lex.remainder().bytes().next() != Some(b'{') {

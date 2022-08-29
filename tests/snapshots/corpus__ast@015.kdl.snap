@@ -1,0 +1,161 @@
+---
+source: tests/corpus.rs
+expression: "// Nodes can be separated into multiple lines\ntitle \\\n  \"Some title\"\n\n\n// Files must be utf8 encoded!\nsmile \"😁\"\n\n// Instead of anonymous nodes, nodes and properties can be wrapped\n// in \"\" for arbitrary node names.\n\"!@#$@$%Q#$%~@!40\" \"1.2.3\" \"!!!!!\"=true\n\n// The following is a legal bare identifier:\nfoo123~!@#$%^&*.:'|?+ \"weeee\"\n\n// And you can also use unicode!\nノード　お名前=\"☜(ﾟヮﾟ☜)\"\n\n// kdl specifically allows properties and values to be\n// interspersed with each other, much like CLI commands.\nfoo bar=true \"baz\" quux=false 1 2 3\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 46..71,
+            name: "title",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 56..68,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "Some title",
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 102..116,
+            name: "smile",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 108..114,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "😁",
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 218..259,
+            name: "!@#$@$%Q#$%~@!40",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 237..244,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "1.2.3",
+                    ),
+                },
+                Attribute {
+                    span: 245..257,
+                    name: Some(
+                        "!!!!!",
+                    ),
+                    ty: None,
+                    value: Boolean(
+                        true,
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 304..335,
+            name: "foo123~!@#$%^&*.:'|?+",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 326..333,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "weeee",
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 368..411,
+            name: "ノード",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 380..409,
+                    name: Some(
+                        "お名前",
+                    ),
+                    ty: None,
+                    value: String(
+                        "☜(\u{ff9f}ヮ\u{ff9f}☜)",
+                    ),
+                },
+            ],
+            children: None,
+        },
+        Node {
+            span: 523..559,
+            name: "foo",
+            ty: None,
+            attrs: [
+                Attribute {
+                    span: 527..535,
+                    name: Some(
+                        "bar",
+                    ),
+                    ty: None,
+                    value: Boolean(
+                        true,
+                    ),
+                },
+                Attribute {
+                    span: 536..541,
+                    name: None,
+                    ty: None,
+                    value: String(
+                        "baz",
+                    ),
+                },
+                Attribute {
+                    span: 542..552,
+                    name: Some(
+                        "quux",
+                    ),
+                    ty: None,
+                    value: Boolean(
+                        false,
+                    ),
+                },
+                Attribute {
+                    span: 553..554,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        1,
+                    ),
+                },
+                Attribute {
+                    span: 555..556,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        2,
+                    ),
+                },
+                Attribute {
+                    span: 557..558,
+                    name: None,
+                    ty: None,
+                    value: Number(
+                        3,
+                    ),
+                },
+            ],
+            children: None,
+        },
+    ],
+    ..
+}
