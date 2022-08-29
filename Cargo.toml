@@ -8,7 +8,7 @@ rust-version = "1.64"
 std = ["alloc"]
 alloc = []
 
-ast = ["alloc", "decimal", "miette"]
+ast = ["alloc", "decimal"]
 decimal = ["dep:rust_decimal"]
 lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]

@@ -118,7 +118,6 @@ impl<'kdl> Number<'kdl> {
             Some("0b") => Decimal::from_str_radix(&self.source[2..], 2),
             _ => {
                 if self.source.contains('e') {
-                    dbg!(self.source());
                     Decimal::from_scientific(self.source())
                 } else {
                     use core::str::FromStr;
