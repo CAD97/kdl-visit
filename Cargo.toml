@@ -13,6 +13,8 @@ decimal = ["dep:rust_decimal"]
 lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]
 
+unstable-extern-type = []
+
 [dependencies]
 displaydoc = { version = "0.2.3", default-features = false }
 lexical-core = { version = "0.8.5", default-features = false, features = ["parse-floats", "parse-integers", "power-of-two", "format"], optional = true }
