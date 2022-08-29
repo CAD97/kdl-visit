@@ -8,20 +8,21 @@ rust-version = "1.64"
 std = ["alloc"]
 alloc = []
 
-ast = ["alloc", "decimal", "miette"]
-decimal = ["dep:rust_decimal"]
+ast = ["alloc", "decimal"]
+decimal = ["dep:rust_decimal", "alloc"]
 lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]
+
+unstable-extern-type = []
 
 [dependencies]
 displaydoc = { version = "0.2.3", default-features = false }
 lexical-core = { version = "0.8.5", default-features = false, features = ["parse-floats", "parse-integers", "power-of-two", "format"], optional = true }
 logos = { version = "0.12.1", default-features = false, features = ["export_derive"] }
 miette = { version = "5.3.0", default-features = false, optional = true }
-ref-cast = "1.0.9"
+ref-cast = { version = "1.0.9", default-features = false }
 rust_decimal = { version = "1.26.1", default-features = false, optional = true }
 scopeguard = { version = "1.1.0", default-features = false }
-sptr = "0.3.2"
 tracing = { version = "0.1.36", default-features = false, features = ["attributes"], optional = true }
 
 [dev-dependencies]

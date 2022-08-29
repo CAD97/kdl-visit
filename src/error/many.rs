@@ -29,6 +29,7 @@ pub struct ParseErrors<Source: fmt::Debug + SourceCode = String> {
     pub errors: Vec<ParseError>,
 }
 
+#[cfg(feature = "std")]
 impl<Source: fmt::Debug + SourceCode> std::error::Error for ParseErrors<Source> {}
 
 impl ParseErrors<Cow<'_, str>> {
