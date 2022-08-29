@@ -29,70 +29,45 @@ mod _impl {
     unsafe impl<'kdl> Sync for Node<'kdl> where [TreeEntry<'kdl>]: Send {}
 
     impl<'kdl> Nodes<'kdl> {
-        pub(in crate::ast) unsafe fn from_ptr(entries: *const TreeEntry<'kdl>) -> &'static Self {
-            match *entries {
-                TreeEntry {
-                    what: TreeEntryKind::Nodes { entry_count, .. },
-                    ..
-                } => Self::from_slice(slice::from_raw_parts(entries, entry_count)),
-                _ => unreachable_unsafe!("should point at nodes entry"),
-            }
+        #[allow(dead_code)]
+        pub(in crate::ast) unsafe fn from_ptr<'a>(entries: *const TreeEntry<'kdl>) -> &'a Self {
+            let TreeEntryNodesRef {
+                tree_entry_count, ..
+            } = (*entries).as_nodes();
+            Self::from_slice(slice::from_raw_parts(entries, tree_entry_count.get()))
         }
 
         pub(in crate::ast) unsafe fn from_slice<'a>(entries: &'a [TreeEntry<'kdl>]) -> &'a Self {
-            match entries.get(0) {
-                Some(TreeEntry {
-                    what: TreeEntryKind::Nodes { entry_count, .. },
-                    ..
-                }) => {
-                    if entries.len() == *entry_count {
-                        &*(entries.as_ptr() as *const _)
-                    } else {
-                        unreachable_unsafe!("should be of correct length")
-                    }
-                }
-                _ => {
-                    unreachable_unsafe!("should point at nodes entry")
-                }
-            }
+            let TreeEntryNodesRef {
+                tree_entry_count, ..
+            } = entries[0].as_nodes();
+            debug_assert_eq!(entries.len(), tree_entry_count.get());
+            &*(entries as *const _ as *const _)
         }
 
         pub(super) fn as_ptr(&self) -> *const TreeEntry<'kdl> {
-            self.entries
+            self as *const _ as *const _
         }
     }
 
     impl<'kdl> Node<'kdl> {
-        pub(in crate::ast) unsafe fn from_ptr(entries: *const TreeEntry<'kdl>) -> &'static Self {
-            match *entries {
-                TreeEntry {
-                    what: TreeEntryKind::Node { entry_count, .. },
-                    ..
-                } => Self::from_slice(slice::from_raw_parts(entries, entry_count)),
-                _ => unreachable_unsafe!("should point at node entry"),
-            }
+        pub(in crate::ast) unsafe fn from_ptr<'a>(entries: *const TreeEntry<'kdl>) -> &'a Self {
+            let TreeEntryNodeRef {
+                tree_entry_count, ..
+            } = (*entries).as_node();
+            Self::from_slice(slice::from_raw_parts(entries, tree_entry_count.get()))
         }
 
         pub(in crate::ast) unsafe fn from_slice<'a>(entries: &'a [TreeEntry<'kdl>]) -> &'a Self {
-            match entries.get(0) {
-                Some(TreeEntry {
-                    what: TreeEntryKind::Node { entry_count, .. },
-                    ..
-                }) => {
-                    if entries.len() == *entry_count {
-                        &*(entries.as_ptr() as *const _)
-                    } else {
-                        unreachable_unsafe!("should be of correct length")
-                    }
-                }
-                _ => {
-                    unreachable_unsafe!("should point at nodes entry")
-                }
-            }
+            let TreeEntryNodeRef {
+                tree_entry_count, ..
+            } = entries[0].as_node();
+            debug_assert_eq!(entries.len(), tree_entry_count.get());
+            &*(entries as *const _ as *const _)
         }
 
         pub(super) fn as_ptr(&self) -> *const TreeEntry<'kdl> {
-            self.entries
+            self as *const _ as *const _
         }
     }
 }
