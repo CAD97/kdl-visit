@@ -11,6 +11,7 @@ Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum
    ·                  ╰── scale exceeds maximum precision
  3 │   too-negative=-1e100 \
    ╰────
+  help: precision between 1e-20 and 1e+20 is supported
 Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.NumberOutOfRange)
 
   × unrepresentable number
@@ -21,6 +22,7 @@ Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum
    ·                   ╰── scale exceeds maximum precision
  4 │   too-small=1e-100
    ╰────
+  help: precision between 1e-20 and 1e+20 is supported
 Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum.ParseError.html#variant.NumberOutOfRange)
 
   × unrepresentable number
@@ -30,3 +32,4 @@ Error: kdl::number_out_of_range (https://docs.rs/kdl-visit/latest/kdl_visit/enum
    ·             ───┬──
    ·                ╰── scale exceeds maximum precision
    ╰────
+  help: precision between 1e-20 and 1e+20 is supported
