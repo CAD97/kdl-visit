@@ -18,18 +18,16 @@ jobs:
       - uses: dtolnay/rust-toolchain@beta
       - uses: taiki-e/install-action@cargo-hack
       - uses: Swatinem/rust-cache@v2
-      - run: cargo hack --feature-powerset --exclude-features unstable-extern-type test
+      - run: cargo hack --feature-powerset --exclude-features unstable-extern_types test
 
   test-nightly:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: --cfg allow_crate_unstable
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@nightly
       - uses: taiki-e/install-action@cargo-hack
       - uses: Swatinem/rust-cache@v2
-      - run: cargo hack --feature-powerset --features unstable-extern-type test
+      - run: cargo hack --feature-powerset --features unstable-extern_types test
 
   check-no-alloc:
     runs-on: ubuntu-latest

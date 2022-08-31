@@ -3,7 +3,7 @@ use {
     core::{fmt, marker::PhantomData, ops::Range, slice},
 };
 
-#[cfg(feature = "unstable-extern-type")]
+#[cfg(feature = "unstable-extern_types")]
 mod _impl {
     use super::*;
 
@@ -14,13 +14,13 @@ mod _impl {
     #[repr(transparent)]
     pub struct Nodes<'kdl> {
         marker: PhantomData<[TreeEntry<'kdl>]>,
-        entries: TreeEntries,
+        _entries: TreeEntries,
     }
 
     #[repr(transparent)]
     pub struct Node<'kdl> {
         marker: PhantomData<[TreeEntry<'kdl>]>,
-        entries: TreeEntries,
+        _entries: TreeEntries,
     }
 
     unsafe impl<'kdl> Send for Nodes<'kdl> where [TreeEntry<'kdl>]: Send {}
@@ -72,7 +72,7 @@ mod _impl {
     }
 }
 
-#[cfg(not(feature = "unstable-extern-type"))]
+#[cfg(not(feature = "unstable-extern_types"))]
 mod _impl {
     use super::*;
 

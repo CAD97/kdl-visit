@@ -1,6 +1,6 @@
 use {crate::ErrorSpan, displaydoc::Display};
 
-/// Errors that can be encountered while parsing KDL.
+/// An error that can be encountered while parsing KDL.
 ///
 /// # Stability note
 ///

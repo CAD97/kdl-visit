@@ -1,7 +1,7 @@
 use {
-    crate::{visit, ParseError},
+    crate::{visit, visit_kdl_string, ParseError},
     alloc::{borrow::Cow, string::String, vec::Vec},
-    core::fmt,
+    core::{fmt, str::FromStr},
     displaydoc::Display,
 };
 
@@ -19,8 +19,10 @@ use hidden::SourceCode;
 #[cfg(feature = "miette")]
 use miette::SourceCode;
 
+/// A collection of errors that occurred during parsing KDL.
 #[derive(Debug, Display, Clone)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
+#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
 #[displaydoc("errors occured while parsing")]
 pub struct ParseErrors<Source: fmt::Debug + SourceCode = String> {
     #[cfg_attr(feature = "miette", source_code)]
@@ -41,13 +43,37 @@ impl ParseErrors<Cow<'_, str>> {
     }
 }
 
+impl<'kdl> ParseErrors<&'kdl str> {
+    #[allow(clippy::should_implement_trait, clippy::result_unit_err)]
+    pub fn from_str(source: &'kdl str) -> Result<Self, ()> {
+        let mut errors = vec![];
+        let _ = visit_kdl_string(source, CollectErrors::new(&mut errors));
+        if errors.is_empty() {
+            Err(())
+        } else {
+            Ok(ParseErrors { source, errors })
+        }
+    }
+}
+
+impl FromStr for ParseErrors {
+    type Err = ();
+    fn from_str(source: &str) -> Result<Self, Self::Err> {
+        let errors = ParseErrors::from_str(source);
+        Ok(ParseErrors {
+            errors: errors?.errors,
+            source: source.into(),
+        })
+    }
+}
+
 #[derive(Debug, Default)]
-pub struct CollectErrors<'a> {
+struct CollectErrors<'a> {
     errors: Option<&'a mut Vec<ParseError>>,
 }
 
 impl<'a> CollectErrors<'a> {
-    pub fn new(errors: &'a mut Vec<ParseError>) -> Self {
+    fn new(errors: &'a mut Vec<ParseError>) -> Self {
         Self {
             errors: Some(errors),
         }

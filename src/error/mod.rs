@@ -3,7 +3,7 @@ mod many;
 mod one;
 
 #[cfg(feature = "alloc")]
-pub use self::many::{CollectErrors, ParseErrors};
+pub use self::many::ParseErrors;
 pub use self::one::ParseError;
 
 use core::ops::Range;

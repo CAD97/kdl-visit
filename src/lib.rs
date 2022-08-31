@@ -1,10 +1,7 @@
 #![no_std]
 #![warn(missing_debug_implementations, unreachable_pub)]
-#![cfg_attr(feature = "unstable-extern-type", feature(extern_types))]
-
-// #[cfg(feature = "unstable-extern-type")]
-// #[cfg(not(allow_crate_unstable))]
-// compile_error!("feature unstable-extern-type is unstable and requires --cfg allow_crate_unstable");
+#![cfg_attr(feature = "unstable-extern_types", feature(extern_types))]
+#![cfg_attr(doc, feature(doc_cfg, doc_auto_cfg))]
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]
@@ -29,4 +26,4 @@ pub use self::{
 pub(crate) use error::ERROR_STRING;
 
 #[cfg(feature = "alloc")]
-pub use self::error::{CollectErrors, ParseErrors};
+pub use self::error::ParseErrors;

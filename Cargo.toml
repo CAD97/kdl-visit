@@ -13,7 +13,7 @@ decimal = ["dep:rust_decimal", "alloc"]
 lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]
 
-unstable-extern-type = []
+unstable-extern_types = []
 
 [dependencies]
 displaydoc = { version = "0.2.3", default-features = false }
