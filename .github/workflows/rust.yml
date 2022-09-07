@@ -20,15 +20,6 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo hack --feature-powerset --exclude-features unstable-extern_types test
 
-  test-nightly:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: taiki-e/install-action@cargo-hack
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo hack --feature-powerset --features unstable-extern_types test
-
   check-no-alloc:
     runs-on: ubuntu-latest
     steps:
@@ -47,4 +38,4 @@ jobs:
         with:
           components: rust-src
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check -Zbuild-std=core,alloc --target x86_64-unknown-linux-gnu --features alloc,ast,decimal,lexical
+      - run: cargo check -Zbuild-std=core,alloc --target x86_64-unknown-linux-gnu --features alloc,decimal,lexical
