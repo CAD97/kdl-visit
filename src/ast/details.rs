@@ -26,6 +26,7 @@ impl<'a> EntryKind<'a> {
         }
     }
 
+    #[track_caller]
     pub(super) fn unwrap_node(&self) -> &NodeMeta {
         match self {
             EntryKind::Node(meta) => meta,
@@ -33,6 +34,7 @@ impl<'a> EntryKind<'a> {
         }
     }
 
+    #[track_caller]
     pub(super) fn unwrap_node_mut(&mut self) -> &mut NodeMeta {
         match self {
             EntryKind::Node(meta) => meta,
@@ -47,6 +49,7 @@ impl<'a> EntryKind<'a> {
         }
     }
 
+    #[track_caller]
     pub(super) fn unwrap_attr(&self) -> &AttrValue<'a> {
         match self {
             EntryKind::Node(_) => panic!("expected attr"),
@@ -54,6 +57,7 @@ impl<'a> EntryKind<'a> {
         }
     }
 
+    #[track_caller]
     pub(super) fn unwrap_attr_mut(&mut self) -> &mut AttrValue<'a> {
         match self {
             EntryKind::Node(_) => panic!("expected attr"),

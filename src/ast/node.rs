@@ -46,7 +46,7 @@ impl<'kdl> Node<'kdl> {
         match (meta.first_child, meta.last_child) {
             (Some(first), Some(last)) => NodeIter {
                 entries: &self.entries[first.get() as usize..],
-                tail: last.get() as usize,
+                tail: (last.get() - first.get()) as usize,
             },
             (None, None) => Default::default(),
             _ => unreachable!("corrupted KDL AST"),
@@ -86,7 +86,7 @@ impl<'a, 'kdl> Iterator for NodeIter<'a, 'kdl> {
             None => {
                 let next = Node::ref_cast(self.entries);
                 self.entries = &[];
-                self.tail = 0; // FIXME: it's supposed to already be 0 if this is hit
+                debug_assert_eq!(self.tail, 0);
                 Some(next)
             }
             Some(after) => {
@@ -116,10 +116,10 @@ impl<'a, 'kdl> DoubleEndedIterator for NodeIter<'a, 'kdl> {
                 Some(next_back)
             }
             Some(after) => {
-                let ix = after.get() as usize;
+                let off = after.get() as usize;
                 let next_back = Node::ref_cast(&self.entries[self.tail..]);
                 self.entries = &self.entries[..self.tail];
-                self.tail = ix;
+                self.tail -= off;
                 Some(next_back)
             }
         }
