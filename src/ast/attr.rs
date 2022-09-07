@@ -165,6 +165,15 @@ impl<'a, 'kdl> Iterator for AttrIter<'a, 'kdl> {
     }
 }
 
+impl<'a, 'kdl> DoubleEndedIterator for AttrIter<'a, 'kdl> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.entries.last().map(|entry| {
+            self.entries = &self.entries[..self.entries.len() - 1];
+            Attr::ref_cast(entry)
+        })
+    }
+}
+
 impl fmt::Debug for AttrIter<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.clone()).finish()
