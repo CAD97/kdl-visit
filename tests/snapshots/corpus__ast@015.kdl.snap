@@ -6,156 +6,131 @@ Document {
     nodes: [
         Node {
             span: 46..71,
-            name: "title",
             ty: None,
+            name: "title":46..51,
             attrs: [
-                Attribute {
+                Attr {
                     span: 56..68,
                     name: None,
                     ty: None,
-                    value: String(
-                        "Some title",
-                    ),
+                    value: "Some title":56..68,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 102..116,
-            name: "smile",
             ty: None,
+            name: "smile":102..107,
             attrs: [
-                Attribute {
+                Attr {
                     span: 108..114,
                     name: None,
                     ty: None,
-                    value: String(
-                        "😁",
-                    ),
+                    value: "😁":108..114,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 218..259,
-            name: "!@#$@$%Q#$%~@!40",
             ty: None,
+            name: "!@#$@$%Q#$%~@!40":218..236,
             attrs: [
-                Attribute {
+                Attr {
                     span: 237..244,
                     name: None,
                     ty: None,
-                    value: String(
-                        "1.2.3",
-                    ),
+                    value: "1.2.3":237..244,
                 },
-                Attribute {
+                Attr {
                     span: 245..257,
                     name: Some(
-                        "!!!!!",
+                        "!!!!!":245..244,
                     ),
                     ty: None,
-                    value: Boolean(
-                        true,
-                    ),
+                    value: true:252..257,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 304..335,
-            name: "foo123~!@#$%^&*.:'|?+",
             ty: None,
+            name: "foo123~!@#$%^&*.:'|?+":304..325,
             attrs: [
-                Attribute {
+                Attr {
                     span: 326..333,
                     name: None,
                     ty: None,
-                    value: String(
-                        "weeee",
-                    ),
+                    value: "weeee":326..333,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 368..411,
-            name: "ノード",
             ty: None,
+            name: "ノード":368..377,
             attrs: [
-                Attribute {
+                Attr {
                     span: 380..409,
                     name: Some(
-                        "お名前",
+                        "お名前":380..379,
                     ),
                     ty: None,
-                    value: String(
-                        "☜(\u{ff9f}ヮ\u{ff9f}☜)",
-                    ),
+                    value: "☜(\u{ff9f}ヮ\u{ff9f}☜)":389..409,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 523..559,
-            name: "foo",
             ty: None,
+            name: "foo":523..526,
             attrs: [
-                Attribute {
+                Attr {
                     span: 527..535,
                     name: Some(
-                        "bar",
+                        "bar":527..526,
                     ),
                     ty: None,
-                    value: Boolean(
-                        true,
-                    ),
+                    value: true:530..535,
                 },
-                Attribute {
+                Attr {
                     span: 536..541,
                     name: None,
                     ty: None,
-                    value: String(
-                        "baz",
-                    ),
+                    value: "baz":536..541,
                 },
-                Attribute {
+                Attr {
                     span: 542..552,
                     name: Some(
-                        "quux",
+                        "quux":542..541,
                     ),
                     ty: None,
-                    value: Boolean(
-                        false,
-                    ),
+                    value: false:546..552,
                 },
-                Attribute {
+                Attr {
                     span: 553..554,
                     name: None,
                     ty: None,
-                    value: Number(
-                        1,
-                    ),
+                    value: 1:553..554,
                 },
-                Attribute {
+                Attr {
                     span: 555..556,
                     name: None,
                     ty: None,
-                    value: Number(
-                        2,
-                    ),
+                    value: 2:555..556,
                 },
-                Attribute {
+                Attr {
                     span: 557..558,
                     name: None,
                     ty: None,
-                    value: Number(
-                        3,
-                    ),
+                    value: 3:557..558,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

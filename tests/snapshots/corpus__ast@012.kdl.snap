@@ -6,22 +6,19 @@ Document {
     nodes: [
         Node {
             span: 37..65,
-            name: "tag",
             ty: None,
+            name: "tag":37..40,
             attrs: [
-                Attribute {
+                Attr {
                     span: 54..63,
                     name: Some(
-                        "bar",
+                        "bar":54..53,
                     ),
                     ty: None,
-                    value: Boolean(
-                        false,
-                    ),
+                    value: false:57..63,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

@@ -6,44 +6,35 @@ Document {
     nodes: [
         Node {
             span: 0..25,
-            name: "bookmarks",
             ty: None,
+            name: "bookmarks":0..9,
             attrs: [
-                Attribute {
+                Attr {
                     span: 10..12,
                     name: None,
                     ty: None,
-                    value: Number(
-                        12,
-                    ),
+                    value: 12:10..12,
                 },
-                Attribute {
+                Attr {
                     span: 13..15,
                     name: None,
                     ty: None,
-                    value: Number(
-                        15,
-                    ),
+                    value: 15:13..15,
                 },
-                Attribute {
+                Attr {
                     span: 16..19,
                     name: None,
                     ty: None,
-                    value: Number(
-                        188,
-                    ),
+                    value: 188:16..19,
                 },
-                Attribute {
+                Attr {
                     span: 20..24,
                     name: None,
                     ty: None,
-                    value: Number(
-                        1234,
-                    ),
+                    value: 1234:20..24,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

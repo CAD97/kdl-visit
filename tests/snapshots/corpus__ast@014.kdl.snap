@@ -6,107 +6,90 @@ Document {
     nodes: [
         Node {
             span: 0..168,
-            name: "numbers",
             ty: None,
+            name: "numbers":0..7,
             attrs: [
-                Attribute {
+                Attr {
                     span: 8..14,
                     name: None,
                     ty: Some(
-                        "u8",
+                        "u8":8..12,
                     ),
-                    value: Number(
-                        10,
-                    ),
+                    value: 10:12..14,
                 },
-                Attribute {
+                Attr {
                     span: 15..22,
                     name: None,
                     ty: Some(
-                        "i32",
+                        "i32":15..20,
                     ),
-                    value: Number(
-                        20,
-                    ),
+                    value: 20:20..22,
                 },
-                Attribute {
+                Attr {
                     span: 23..39,
                     name: Some(
-                        "myfloat",
+                        "myfloat":23..30,
                     ),
                     ty: Some(
-                        "f32",
+                        "f32":31..36,
                     ),
-                    value: Number(
-                        1.5,
-                    ),
+                    value: 1.5:36..39,
                 },
             ],
-            children: Some(
-                [
-                    Node {
-                        span: 44..138,
-                        name: "strings",
-                        ty: None,
-                        attrs: [
-                            Attribute {
-                                span: 52..96,
-                                name: None,
-                                ty: Some(
-                                    "uuid",
-                                ),
-                                value: String(
-                                    "123e4567-e89b-12d3-a456-426614174000",
-                                ),
-                            },
-                            Attribute {
-                                span: 97..115,
-                                name: None,
-                                ty: Some(
-                                    "date",
-                                ),
-                                value: String(
-                                    "2021-02-03",
-                                ),
-                            },
-                            Attribute {
-                                span: 116..137,
-                                name: Some(
-                                    "filter",
-                                ),
-                                ty: Some(
-                                    "regex",
-                                ),
-                                value: String(
-                                    "$\\d+",
-                                ),
-                            },
-                        ],
-                        children: None,
-                    },
-                    Node {
-                        span: 140..167,
-                        name: "person",
-                        ty: Some(
-                            "author",
-                        ),
-                        attrs: [
-                            Attribute {
-                                span: 155..166,
-                                name: Some(
-                                    "name",
-                                ),
-                                ty: None,
-                                value: String(
-                                    "Alex",
-                                ),
-                            },
-                        ],
-                        children: None,
-                    },
-                ],
-            ),
+            children: [
+                Node {
+                    span: 44..138,
+                    ty: None,
+                    name: "strings":44..51,
+                    attrs: [
+                        Attr {
+                            span: 52..96,
+                            name: None,
+                            ty: Some(
+                                "uuid":52..58,
+                            ),
+                            value: "123e4567-e89b-12d3-a456-426614174000":58..96,
+                        },
+                        Attr {
+                            span: 97..115,
+                            name: None,
+                            ty: Some(
+                                "date":97..103,
+                            ),
+                            value: "2021-02-03":103..115,
+                        },
+                        Attr {
+                            span: 116..137,
+                            name: Some(
+                                "filter":116..122,
+                            ),
+                            ty: Some(
+                                "regex":123..130,
+                            ),
+                            value: "$\\d+":130..137,
+                        },
+                    ],
+                    children: [],
+                },
+                Node {
+                    span: 140..167,
+                    ty: Some(
+                        "author":140..148,
+                    ),
+                    name: "person":148..154,
+                    attrs: [
+                        Attr {
+                            span: 155..166,
+                            name: Some(
+                                "name":155..154,
+                            ),
+                            ty: None,
+                            value: "Alex":159..166,
+                        },
+                    ],
+                    children: [],
+                },
+            ],
         },
     ],
-    ..
 }

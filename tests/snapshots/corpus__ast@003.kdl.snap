@@ -6,40 +6,33 @@ Document {
     nodes: [
         Node {
             span: 0..57,
-            name: "author",
             ty: None,
+            name: "author":0..6,
             attrs: [
-                Attribute {
+                Attr {
                     span: 7..19,
                     name: None,
                     ty: None,
-                    value: String(
-                        "Alex Monad",
-                    ),
+                    value: "Alex Monad":7..19,
                 },
-                Attribute {
+                Attr {
                     span: 20..44,
                     name: Some(
-                        "email",
+                        "email":20..19,
                     ),
                     ty: None,
-                    value: String(
-                        "alex@example.com",
-                    ),
+                    value: "alex@example.com":25..44,
                 },
-                Attribute {
+                Attr {
                     span: 45..56,
                     name: Some(
-                        "active",
+                        "active":45..44,
                     ),
                     ty: None,
-                    value: Boolean(
-                        true,
-                    ),
+                    value: true:51..56,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

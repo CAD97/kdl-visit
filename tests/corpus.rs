@@ -66,7 +66,7 @@ fn run_ast_tests() {
             }
             #[cfg(not(feature = "miette"))]
             Err(_) => {}
-        }
+        };
     }));
 }
 

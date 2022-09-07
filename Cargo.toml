@@ -2,18 +2,16 @@
 name = "kdl-visit"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.64"
+rust-version = "1.63"
 
 [features]
 std = ["alloc"]
 alloc = []
 
-ast = ["alloc", "decimal"]
-decimal = ["dep:rust_decimal", "alloc"]
+ast = ["std", "decimal"]
+decimal = ["dep:rust_decimal"]
 lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]
-
-unstable-extern_types = []
 
 [dependencies]
 displaydoc = { version = "0.2.3", default-features = false }

@@ -6,52 +6,45 @@ Document {
     nodes: [
         Node {
             span: 0..18,
-            name: "my-hex",
             ty: None,
+            name: "my-hex":0..6,
             attrs: [
-                Attribute {
+                Attr {
                     span: 7..17,
                     name: None,
                     ty: None,
-                    value: Number(
-                        3735928559,
-                    ),
+                    value: 3735928559:7..17,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 18..33,
-            name: "my-octal",
             ty: None,
+            name: "my-octal":18..26,
             attrs: [
-                Attribute {
+                Attr {
                     span: 27..32,
                     name: None,
                     ty: None,
-                    value: Number(
-                        493,
-                    ),
+                    value: 493:27..32,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 33..54,
-            name: "my-binary",
             ty: None,
+            name: "my-binary":33..42,
             attrs: [
-                Attribute {
+                Attr {
                     span: 43..53,
                     name: None,
                     ty: None,
-                    value: Number(
-                        173,
-                    ),
+                    value: 173:43..53,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

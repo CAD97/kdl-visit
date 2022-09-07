@@ -1,7 +1,7 @@
 #[cfg(feature = "alloc")]
 use alloc::borrow::Cow;
 use {
-    crate::utils::{unescape, Display},
+    crate::utils::{unescape, Fmt},
     core::fmt,
 };
 
@@ -46,7 +46,7 @@ impl<'kdl> Identifier<'kdl> {
     }
 
     pub fn as_value(self) -> impl 'kdl + fmt::Display {
-        Display(move |f| match self {
+        Fmt(move |f| match self {
             Identifier::Bare(source) => write!(f, "{source}"),
             Identifier::String(string) => write!(f, "{}", string.as_value()),
         })
@@ -94,7 +94,7 @@ impl<'kdl> String<'kdl> {
     }
 
     pub fn as_value(self) -> impl 'kdl + fmt::Display {
-        Display(move |f| {
+        Fmt(move |f| {
             if let Some(value) = self.raw_value() {
                 f.write_str(value)
             } else {
@@ -127,30 +127,127 @@ impl<'kdl> Number<'kdl> {
         }
     }
 
-    #[cfg(feature = "lexical")]
+    #[cfg(any(feature = "lexical", feature = "std"))]
     pub fn value<N: hidden::PrimitiveNumber>(self) -> Option<N> {
-        todo!()
+        N::from_kdl_lit(self.source())
     }
 }
 
 #[allow(unreachable_pub)]
 #[cfg(any(feature = "alloc", feature = "lexical"))]
 mod hidden {
-    use core::str::FromStr;
-    #[cfg(feature = "lexical")]
-    use lexical_core::FromLexicalWithOptions;
+    pub trait PrimitiveNumber: Sized {
+        fn from_kdl_lit(s: &str) -> Option<Self>;
+    }
 
     #[cfg(feature = "lexical")]
-    pub trait PrimitiveNumber: FromStr + FromLexicalWithOptions {}
+    use core::num::NonZeroU8;
+    #[cfg(feature = "lexical")]
+    macro_rules! b {
+        ($x:literal) => {
+            NonZeroU8::new($x)
+        };
+    }
+    #[cfg(feature = "lexical")]
+    const DEC_FORMAT: u128 = lexical_core::format::NumberFormatBuilder::new()
+        .digit_separator(b!(b'_'))
+        .mantissa_radix(10)
+        .exponent_base(b!(10))
+        .exponent_radix(b!(10))
+        .required_digits(true)
+        .no_special(true)
+        .build();
+    #[cfg(feature = "lexical")]
+    const BIN_FORMAT: u128 = lexical_core::format::NumberFormatBuilder::new()
+        .digit_separator(b!(b'_'))
+        .mantissa_radix(2)
+        .build();
+    #[cfg(feature = "lexical")]
+    const OCT_FORMAT: u128 = lexical_core::format::NumberFormatBuilder::new()
+        .digit_separator(b!(b'_'))
+        .mantissa_radix(8)
+        .build();
+    #[cfg(feature = "lexical")]
+    const HEX_FORMAT: u128 = lexical_core::format::NumberFormatBuilder::new()
+        .digit_separator(b!(b'_'))
+        .mantissa_radix(16)
+        .build();
+
+    #[cfg(feature = "lexical")]
+    macro_rules! impl_PrimitiveNumber {($($I:ident),* $(,)? ; $($F:ident),* $(,)?) => {
+        $(
+            impl PrimitiveNumber for $I {
+                #[inline]
+                fn from_kdl_lit(s: &str) -> Option<Self> {
+                    let b = s.as_bytes();
+                    if let Some(b) = b.strip_prefix(b"0b") {
+                        lexical_core::parse_with_options::<$I, BIN_FORMAT>(
+                            b,
+                            &lexical_core::ParseIntegerOptions::builder().build().unwrap(),
+                        ).ok()
+                    } else if let Some(b) = b.strip_prefix(b"0o") {
+                        lexical_core::parse_with_options::<$I, OCT_FORMAT>(
+                            b,
+                            &lexical_core::ParseIntegerOptions::builder().build().unwrap(),
+                        ).ok()
+                    } else if let Some(b) = b.strip_prefix(b"0x") {
+                        lexical_core::parse_with_options::<$I, HEX_FORMAT>(
+                            b,
+                            &lexical_core::ParseIntegerOptions::builder().build().unwrap(),
+                        ).ok()
+                    } else {
+                        lexical_core::parse_with_options::<$I, DEC_FORMAT>(
+                            b,
+                            &lexical_core::ParseIntegerOptions::builder().build().unwrap(),
+                        ).ok()
+                    }
+                }
+            }
+        )*
+        $(
+            impl PrimitiveNumber for $F {
+                #[inline]
+                fn from_kdl_lit(s: &str) -> Option<Self> {
+                    lexical_core::parse_with_options::<$F, DEC_FORMAT>(
+                        s.as_bytes(),
+                        &lexical_core::ParseFloatOptions::from_radix(10),
+                    ).ok()
+                }
+            }
+        )*
+    } }
+
     #[cfg(not(feature = "lexical"))]
-    pub trait PrimitiveNumber: FromStr {}
+    macro_rules! impl_PrimitiveNumber {($($I:ident),* $(,)? ; $($F:ident),* $(,)?) => {
+        $(
+            impl PrimitiveNumber for $I {
+                #[inline]
+                fn from_kdl_lit(s: &str) -> Option<Self> {
+                    if let Some(s) = s.strip_prefix("0b") {
+                        $I::from_str_radix(s, 2).ok()
+                    } else if let Some(s) = s.strip_prefix("0o") {
+                        $I::from_str_radix(s, 8).ok()
+                    } else if let Some(s) = s.strip_prefix("0x") {
+                        $I::from_str_radix(s, 16).ok()
+                    } else {
+                        s.parse().ok()
+                    }
+                }
+            }
+        )*
+        $(
+            impl PrimitiveNumber for $F {
+                #[inline]
+                fn from_kdl_lit(s: &str) -> Option<Self> {
+                    s.parse().ok()
+                }
+            }
+        )*
+    } }
 
-    macro_rules! impl_PrimitiveNumber {($($T:ident),* $(,)?) => {$(
-        impl PrimitiveNumber for $T {}
-    )*}}
     impl_PrimitiveNumber! {
         u8, u16, u32, u64, u128, usize,
-        i8, i16, i32, i64, i128, isize,
-        f32, f64
+        i8, i16, i32, i64, i128, isize;
+        f32, f64,
     }
 }

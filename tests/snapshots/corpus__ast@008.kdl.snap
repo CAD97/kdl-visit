@@ -6,20 +6,17 @@ Document {
     nodes: [
         Node {
             span: 0..27,
-            name: "other-raw",
             ty: None,
+            name: "other-raw":0..9,
             attrs: [
-                Attribute {
+                Attr {
                     span: 10..26,
                     name: None,
                     ty: None,
-                    value: String(
-                        "hello\"world",
-                    ),
+                    value: "hello\"world":10..26,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

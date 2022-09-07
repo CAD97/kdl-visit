@@ -5,11 +5,19 @@
 // };
 use core::fmt::{self, Write};
 
-pub(crate) struct Display<F>(pub(crate) F)
+pub(crate) struct Fmt<F>(pub(crate) F)
 where
     F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result;
 
-impl<F> fmt::Display for Display<F>
+impl<F> fmt::Display for Fmt<F>
+where
+    F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        (self.0)(f)
+    }
+}
+impl<F> fmt::Debug for Fmt<F>
 where
     F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result,
 {
@@ -47,7 +55,7 @@ where
 // }
 
 pub(crate) fn unescape(src: &str) -> impl '_ + fmt::Display {
-    Display(move |f| {
+    Fmt(move |f| {
         let mut src = src;
         loop {
             match src.find('\\') {

@@ -1,0 +1,40 @@
+---
+source: tests/corpus.rs
+expression: "numbers \\\n  too-positive=1e100 \\\n  too-negative=-1e100 \\\n  too-small=1e-100\n"
+---
+Document {
+    nodes: [
+        Node {
+            span: 0..76,
+            ty: None,
+            name: "numbers":0..7,
+            attrs: [
+                Attr {
+                    span: 12..30,
+                    name: Some(
+                        "too-positive":12..11,
+                    ),
+                    ty: None,
+                    value: 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:24..30,
+                },
+                Attr {
+                    span: 35..54,
+                    name: Some(
+                        "too-negative":35..34,
+                    ),
+                    ty: None,
+                    value: -10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000:47..54,
+                },
+                Attr {
+                    span: 59..75,
+                    name: Some(
+                        "too-small":59..58,
+                    ),
+                    ty: None,
+                    value: 0.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001:68..75,
+                },
+            ],
+            children: [],
+        },
+    ],
+}

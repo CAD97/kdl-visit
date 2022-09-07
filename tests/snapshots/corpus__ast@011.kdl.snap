@@ -6,20 +6,17 @@ Document {
     nodes: [
         Node {
             span: 0..17,
-            name: "bignum",
             ty: None,
+            name: "bignum":0..6,
             attrs: [
-                Attribute {
+                Attr {
                     span: 7..16,
                     name: None,
                     ty: None,
-                    value: Number(
-                        1000000,
-                    ),
+                    value: 1000000:7..16,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

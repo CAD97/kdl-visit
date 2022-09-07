@@ -6,20 +6,17 @@ Document {
     nodes: [
         Node {
             span: 0..28,
-            name: "string",
             ty: None,
+            name: "string":0..6,
             attrs: [
-                Attribute {
+                Attr {
                     span: 7..27,
                     name: None,
                     ty: None,
-                    value: String(
-                        "my\nmultiline\nvalue",
-                    ),
+                    value: "my\nmultiline\nvalue":7..27,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

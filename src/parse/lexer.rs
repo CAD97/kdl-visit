@@ -1,7 +1,4 @@
-use {
-    core::{ops::Range, slice::SliceIndex},
-    logos::Logos,
-};
+use {crate::Span, logos::Logos};
 
 #[derive(Logos, Debug, Clone, Copy, PartialEq, Eq)]
 #[logos(subpattern integer = r"[[:digit:]][[:digit:]_]*")]
@@ -166,7 +163,7 @@ fn raw_string(lex: &mut logos::Lexer<Token>) -> bool {
 
 pub(crate) struct Lexer<'kdl> {
     lexer: logos::Lexer<'kdl, Token>,
-    lookahead: [Option<(Token, Range<usize>)>; 4],
+    lookahead: [Option<(Token, Span)>; 4],
 }
 
 #[allow(unreachable_pub)]
@@ -189,7 +186,7 @@ impl<'kdl> Lexer<'kdl> {
     }
 
     #[cfg(feature = "tracing")]
-    pub fn ll3(&self) -> &[Option<(Token, Range<usize>)>] {
+    pub fn ll3(&self) -> &[Option<(Token, Span)>] {
         &self.lookahead[..3]
     }
 
@@ -197,35 +194,32 @@ impl<'kdl> Lexer<'kdl> {
         self.lexer.source()
     }
 
-    fn slice(&self, index: impl SliceIndex<str, Output = str>) -> &'kdl str {
-        &self.source()[index]
-    }
-
-    fn peek1(&self) -> Option<(Token, Range<usize>)> {
-        self.lookahead[0].clone()
+    fn peek1(&self) -> Option<(Token, Span)> {
+        self.lookahead[0]
     }
 
     pub fn token1(&self) -> Option<Token> {
         self.peek1().map(|(token, _)| token)
     }
 
-    pub fn span1(&self) -> Range<usize> {
+    pub fn span1(&self) -> Span {
         self.peek1().map_or_else(
-            || self.source().len()..self.source().len(),
+            || Span::from(self.source().len()..self.source().len()),
             |(_, span)| span,
         )
     }
 
     pub fn slice1(&self) -> &'kdl str {
-        self.slice(self.span1())
+        let span = self.span1();
+        &self.source()[span.start..span.end]
     }
 
     pub fn token2(&self) -> Option<Token> {
-        self.lookahead[1].clone().map(|(token, _)| token)
+        self.lookahead[1].map(|(token, _)| token)
     }
 
     pub fn token3(&self) -> Option<Token> {
-        self.lookahead[2].clone().map(|(token, _)| token)
+        self.lookahead[2].map(|(token, _)| token)
     }
 
     pub fn bump(&mut self) {
@@ -235,26 +229,29 @@ impl<'kdl> Lexer<'kdl> {
         loop {
             match self.lexer.next() {
                 Some(Token::Whitespace) => {
-                    let span = self.lexer.span();
+                    let span: Span = self.lexer.span().try_into().unwrap();
                     if let Some((Token::Whitespace, range)) = &mut self.lookahead[2] {
                         debug_assert_eq!(range.end, span.start);
-                        *range = range.start..span.end;
+                        *range = Span::from(range.start..span.end);
                         continue;
                     } else {
                         self.lookahead[3] = Some((Token::Whitespace, span));
                     }
                 }
                 Some(Token::Newline) => {
-                    let span = self.lexer.span();
+                    let span: Span = self.lexer.span().try_into().unwrap();
                     if let Some((Token::Newline, range)) = &mut self.lookahead[2] {
                         debug_assert_eq!(range.end, span.start);
-                        *range = range.start..span.end;
+                        *range = Span::from(range.start..span.end);
                         continue;
                     } else {
                         self.lookahead[3] = Some((Token::Newline, span));
                     }
                 }
-                next => self.lookahead[3] = next.map(|token| (token, self.lexer.span())),
+                next => {
+                    self.lookahead[3] =
+                        next.map(|token| (token, self.lexer.span().try_into().unwrap()))
+                }
             }
             break;
         }

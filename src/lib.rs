@@ -1,7 +1,6 @@
 #![no_std]
 #![warn(missing_debug_implementations, unreachable_pub)]
-#![cfg_attr(feature = "unstable-extern_types", feature(extern_types))]
-#![cfg_attr(doc, feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(all(doc, not(doctest)), feature(doc_cfg, doc_auto_cfg))]
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]
@@ -16,14 +15,12 @@ extern crate std;
 pub mod ast;
 mod error;
 mod parse;
+mod span;
 mod utils;
 pub mod visit;
 
-pub use self::{
-    error::{ErrorSpan, ParseError},
-    parse::visit_kdl_string,
-};
-pub(crate) use error::ERROR_STRING;
+pub(crate) use self::error::ERROR_STRING;
+pub use self::{error::ParseError, parse::visit_kdl_string, span::Span};
 
 #[cfg(feature = "alloc")]
 pub use self::error::ParseErrors;

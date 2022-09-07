@@ -6,25 +6,24 @@ Document {
     nodes: [
         Node {
             span: 0..6,
-            name: "node1",
             ty: None,
+            name: "node1":0..5,
             attrs: [],
-            children: None,
+            children: [],
         },
         Node {
             span: 7..13,
-            name: "node2",
             ty: None,
+            name: "node2":7..12,
             attrs: [],
-            children: None,
+            children: [],
         },
         Node {
             span: 14..20,
-            name: "node3",
             ty: None,
+            name: "node3":14..19,
             attrs: [],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

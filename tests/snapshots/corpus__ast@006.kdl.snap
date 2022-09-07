@@ -6,36 +6,31 @@ Document {
     nodes: [
         Node {
             span: 0..26,
-            name: "node",
             ty: None,
+            name: "node":0..4,
             attrs: [
-                Attribute {
+                Attr {
                     span: 5..25,
                     name: None,
                     ty: None,
-                    value: String(
-                        "\"this\nhas\tescapes\"",
-                    ),
+                    value: "\"this\nhas\tescapes\"":5..25,
                 },
             ],
-            children: None,
+            children: [],
         },
         Node {
             span: 26..50,
-            name: "other",
             ty: None,
+            name: "other":26..31,
             attrs: [
-                Attribute {
+                Attr {
                     span: 32..49,
                     name: None,
                     ty: None,
-                    value: String(
-                        "C:\\Users\\zkat\\",
-                    ),
+                    value: "C:\\Users\\zkat\\":32..49,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

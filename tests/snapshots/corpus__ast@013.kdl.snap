@@ -6,20 +6,17 @@ Document {
     nodes: [
         Node {
             span: 98..163,
-            name: "mynode",
             ty: None,
+            name: "mynode":98..104,
             attrs: [
-                Attribute {
+                Attr {
                     span: 119..134,
                     name: None,
                     ty: None,
-                    value: String(
-                        "not commented",
-                    ),
+                    value: "not commented":119..134,
                 },
             ],
-            children: None,
+            children: [],
         },
     ],
-    ..
 }

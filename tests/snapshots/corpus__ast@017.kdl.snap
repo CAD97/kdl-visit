@@ -6,13 +6,10 @@ Document {
     nodes: [
         Node {
             span: 0..6,
-            name: "node",
             ty: None,
+            name: "node":0..4,
             attrs: [],
-            children: Some(
-                [],
-            ),
+            children: [],
         },
     ],
-    ..
 }

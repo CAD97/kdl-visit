@@ -1,4 +1,4 @@
-use {crate::ErrorSpan, displaydoc::Display};
+use {crate::Span, displaydoc::Display};
 
 /// An error that can be encountered while parsing KDL.
 ///
@@ -57,7 +57,7 @@ pub enum ParseError {
     )]
     BareValue {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -93,9 +93,9 @@ pub enum ParseError {
     EscapedContent {
         #[doc(hidden)]
         #[cfg_attr(feature = "miette", label("this line continuation"))]
-        escape: ErrorSpan,
+        escape: Span,
         #[cfg_attr(feature = "miette", label("try commenting this out"))]
-        span: ErrorSpan,
+        span: Span,
     },
 
     /// A line contination was found at the end of the file without a newline.
@@ -122,7 +122,7 @@ pub enum ParseError {
     )]
     EscapedEof {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -139,7 +139,7 @@ pub enum ParseError {
     #[non_exhaustive]
     Generic {
         #[cfg_attr(feature = "miette", label("found {}", .found))]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         found: &'static str,
         #[doc(hidden)]
@@ -176,7 +176,7 @@ pub enum ParseError {
     #[non_exhaustive]
     InvalidStringEscape {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -209,7 +209,7 @@ pub enum ParseError {
     #[non_exhaustive]
     InvalidWhitespaceAfterType {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -240,10 +240,10 @@ pub enum ParseError {
     )]
     InvalidWhitespaceInProperty {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         #[cfg_attr(feature = "miette", label)]
-        span2: Option<ErrorSpan>,
+        span2: Option<Span>,
     },
 
     /// A type annotation contained whitespace within the parentheses.
@@ -273,10 +273,10 @@ pub enum ParseError {
     #[non_exhaustive]
     InvalidWhitespaceInType {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         #[cfg_attr(feature = "miette", label)]
-        span2: Option<ErrorSpan>,
+        span2: Option<Span>,
     },
 
     /// A property lacks a value.
@@ -306,7 +306,7 @@ pub enum ParseError {
     #[non_exhaustive]
     MissingValue {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -334,7 +334,7 @@ pub enum ParseError {
     #[cfg_attr(feature = "miette", diagnostic(code(kdl::whitespace::before_argument)))]
     MissingWhitespaceBeforeArgument {
         #[cfg_attr(feature = "miette", label("before this argument"))]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         #[cfg_attr(feature = "miette", label("whitespace needed here"))]
         here: usize,
@@ -369,7 +369,7 @@ pub enum ParseError {
     #[cfg_attr(feature = "miette", diagnostic(code(kdl::whitespace::before_property)))]
     MissingWhitespaceBeforeProperty {
         #[cfg_attr(feature = "miette", label("before this property"))]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         #[cfg_attr(feature = "miette", label("whitespace needed here"))]
         here: usize,
@@ -403,7 +403,7 @@ pub enum ParseError {
     #[cfg(feature = "decimal")]
     NumberOutOfRange {
         #[cfg_attr(feature = "miette", label("{why}"))]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         why: &'static str,
     },
@@ -431,7 +431,7 @@ pub enum ParseError {
     #[cfg_attr(feature = "miette", diagnostic(code(kdl::unclosed_string)))]
     UnclosedString {
         #[cfg_attr(feature = "miette", label("opened here"))]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -459,10 +459,10 @@ pub enum ParseError {
     #[cfg_attr(feature = "miette", diagnostic(code(kdl::unclosed_string)))]
     UnclosedRawString {
         #[cfg_attr(feature = "miette", label("opened with {} hash{}", .span.len() - 2, if .span.len() != 3 { "es" } else { "" }))]
-        span: ErrorSpan,
+        span: Span,
         #[cfg_attr(feature = "miette", label("this is the best possible end with {} hash{}", .span2.unwrap().len() - 1, if .span2.unwrap().len() != 2 { "es" } else { "" }))]
         #[doc(hidden)]
-        span2: Option<ErrorSpan>,
+        span2: Option<Span>,
     },
 
     /// A value such as a number, boolean, or null was used as a property key.
@@ -495,7 +495,7 @@ pub enum ParseError {
     #[non_exhaustive]
     UnquotedPropertyName {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },
@@ -526,7 +526,7 @@ pub enum ParseError {
     )]
     UnquotedValue {
         #[cfg_attr(feature = "miette", label)]
-        span: ErrorSpan,
+        span: Span,
         #[doc(hidden)]
         _private: (),
     },

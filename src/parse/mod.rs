@@ -187,10 +187,7 @@ fn visit_escline_trivia<'kdl>(
                     lexer.bump();
                 }
                 None => {
-                    visitor.visit_error(ParseError::EscapedEof {
-                        span: span.into(),
-                        _private: (),
-                    })?;
+                    visitor.visit_error(ParseError::EscapedEof { span, _private: () })?;
                     return Ok(());
                 }
                 Some(_) => {
@@ -199,7 +196,7 @@ fn visit_escline_trivia<'kdl>(
                         match lexer.token1() {
                             Some(Token::Newline) => {
                                 visitor.visit_error(ParseError::EscapedContent {
-                                    escape: span.into(),
+                                    escape: span,
                                     span: (start..lexer.span1().start).into(),
                                 })?;
                                 visitor.visit_trivia(lexer.slice1());
@@ -217,7 +214,7 @@ fn visit_escline_trivia<'kdl>(
                                     lexer.span1().end
                                 };
                                 visitor.visit_error(ParseError::EscapedContent {
-                                    escape: span.into(),
+                                    escape: span,
                                     span: (start..end).into(),
                                 })?;
                                 break;
@@ -267,7 +264,7 @@ fn visit_node<'kdl>(
 
         if let Some(Token::Whitespace) = lexer.token1() {
             visitor.visit_error(ParseError::InvalidWhitespaceAfterType {
-                span: lexer.span1().into(),
+                span: lexer.span1(),
                 _private: (),
             })?;
             visitor.visit_trivia(lexer.slice1());
@@ -284,7 +281,7 @@ fn visit_node<'kdl>(
         }
         Some(Token::Number | Token::True | Token::False | Token::Null) => {
             visitor.visit_error(ParseError::BareValue {
-                span: lexer.span1().into(),
+                span: lexer.span1(),
                 _private: (),
             })?;
             recover(lexer, visitor);
@@ -292,7 +289,7 @@ fn visit_node<'kdl>(
         }
         token => {
             visitor.visit_error(ParseError::Generic {
-                span: lexer.span1().into(),
+                span: lexer.span1(),
                 found: token.map(strings::a).unwrap_or(strings::eof),
                 expected: if has_type_annotation {
                     strings::a_node_name
@@ -338,7 +335,7 @@ fn visit_type_annotation<'kdl>(
             Some(Token::Number | Token::True | Token::False | Token::Null) => {
                 // FIXME: this is the wrong error type
                 visitor.visit_error(ParseError::BareValue {
-                    span: lexer.span1().into(),
+                    span: lexer.span1(),
                     _private: (),
                 })?;
                 visitor.visit_trivia(lexer.slice1());
@@ -347,13 +344,13 @@ fn visit_type_annotation<'kdl>(
             token => {
                 if let Some(span) = leading_whitespace {
                     visitor.visit_error(ParseError::Generic {
-                        span: span.into(),
+                        span,
                         found: strings::a(Token::Whitespace),
                         expected: strings::a_type_name,
                     })?;
                 } else {
                     visitor.visit_error(ParseError::Generic {
-                        span: lexer.span1().into(),
+                        span: lexer.span1(),
                         found: token.map(strings::a).unwrap_or(strings::eof),
                         expected: strings::a_type_name,
                     })?;
@@ -378,7 +375,7 @@ fn visit_type_annotation<'kdl>(
             }
             (Some(Token::CloseParen), (Some(span), span2) | (span2, Some(span))) => {
                 visitor.visit_error(ParseError::InvalidWhitespaceInType {
-                    span: span.into(),
+                    span,
                     span2: span2.map(Into::into),
                 })?;
                 visitor.visit_trivia(lexer.slice1());
@@ -387,13 +384,13 @@ fn visit_type_annotation<'kdl>(
             (token, (_, trailing_whitespace)) => {
                 if let Some(span) = trailing_whitespace {
                     visitor.visit_error(ParseError::Generic {
-                        span: span.into(),
+                        span,
                         found: strings::a(Token::Whitespace),
                         expected: strings::a(Token::CloseParen),
                     })?;
                 } else {
                     visitor.visit_error(ParseError::Generic {
-                        span: lexer.span1().into(),
+                        span: lexer.span1(),
                         found: token.map(strings::a).unwrap_or(strings::eof),
                         expected: strings::a(Token::CloseParen),
                     })?;
@@ -443,12 +440,12 @@ fn try_visit_node_entry<'kdl>(
                 if $is_property {
                     visitor.visit_error(ParseError::MissingWhitespaceBeforeProperty {
                         span: (start + 1..end).into(),
-                        here: start,
+                        here: start as usize,
                     })?;
                 } else {
                     visitor.visit_error(ParseError::MissingWhitespaceBeforeArgument {
                         span: (start + 1..end).into(),
-                        here: start,
+                        here: start as usize,
                     })?;
                 }
             }
@@ -487,7 +484,7 @@ fn try_visit_node_entry<'kdl>(
                 #[allow(unreachable_patterns)]
                 Some(token) => {
                     let err = ParseError::Generic {
-                        span: lexer.span1().into(),
+                        span: lexer.span1(),
                         found: strings::a(token),
                         expected: strings::a(Token::CloseBrace),
                     };
@@ -496,7 +493,7 @@ fn try_visit_node_entry<'kdl>(
                 }
                 None => {
                     visitor.visit_error(ParseError::Generic {
-                        span: lexer.span1().into(),
+                        span: lexer.span1(),
                         found: strings::eof,
                         expected: strings::a(Token::CloseBrace),
                     })?;
@@ -514,7 +511,7 @@ fn try_visit_node_entry<'kdl>(
 
         Some(token) => {
             visitor.visit_error(ParseError::Generic {
-                span: lexer.span1().into(),
+                span: lexer.span1(),
                 found: strings::a(token),
                 expected: strings::a_node_or_close_brace,
             })?;
@@ -579,7 +576,7 @@ fn visit_node_property<'kdl>(
         (None, None) => (),
         (Some(span), span2) | (span2, Some(span)) => {
             property_visitor.visit_error(ParseError::InvalidWhitespaceInProperty {
-                span: span.into(),
+                span,
                 span2: span2.map(Into::into),
             })?;
         }
@@ -587,7 +584,7 @@ fn visit_node_property<'kdl>(
 
     if !try_visit_value(lexer, property_visitor.opaque())? {
         property_visitor.visit_error(ParseError::MissingValue {
-            span: eq_span.into(),
+            span: eq_span,
             _private: (),
         })?;
     }
@@ -643,7 +640,7 @@ fn visit_node_argument<'kdl>(
 
         Some(Token::BareIdentifier) => {
             argument_visitor.visit_error(ParseError::UnquotedValue {
-                span: lexer.span1().into(),
+                span: lexer.span1(),
                 _private: (),
             })?;
             argument_visitor.visit_trivia(lexer.slice1());
@@ -675,7 +672,7 @@ fn try_visit_value<'kdl>(
             visit_type_annotation(lexer, visitor)?;
             if let Some(Token::Whitespace) = lexer.token1() {
                 visitor.visit_error(ParseError::InvalidWhitespaceAfterType {
-                    span: lexer.span1().into(),
+                    span: lexer.span1(),
                     _private: (),
                 })?;
                 visitor.visit_trivia(lexer.slice1());
@@ -690,7 +687,7 @@ fn try_visit_value<'kdl>(
                 }
                 Some(Token::BareIdentifier) => {
                     visitor.visit_error(ParseError::UnquotedValue {
-                        span: lexer.span1().into(),
+                        span: lexer.span1(),
                         _private: (),
                     })?;
                     visitor.visit_trivia(lexer.slice1());
@@ -698,7 +695,7 @@ fn try_visit_value<'kdl>(
                 }
                 got => {
                     let err = ParseError::Generic {
-                        span: lexer.span1().into(),
+                        span: lexer.span1(),
                         found: got.map(strings::a).unwrap_or(strings::eof),
                         expected: strings::a_value,
                     };
@@ -709,7 +706,7 @@ fn try_visit_value<'kdl>(
         }
         Some(Token::BareIdentifier) => {
             visitor.visit_error(ParseError::UnquotedValue {
-                span: lexer.span1().into(),
+                span: lexer.span1(),
                 _private: (),
             })?;
             visitor.visit_trivia(lexer.slice1());

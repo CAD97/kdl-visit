@@ -22,7 +22,7 @@ use miette::SourceCode;
 /// A collection of errors that occurred during parsing KDL.
 #[derive(Debug, Display, Clone)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
-#[cfg_attr(doc, doc(cfg(feature = "alloc")))]
+#[cfg_attr(all(doc, not(doctest)), doc(cfg(feature = "alloc")))]
 #[displaydoc("errors occured while parsing")]
 pub struct ParseErrors<Source: fmt::Debug + SourceCode = String> {
     #[cfg_attr(feature = "miette", source_code)]
