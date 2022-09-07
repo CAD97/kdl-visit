@@ -1,5 +1,5 @@
 use {
-    super::{details::*, AttrIter, Name, Ty},
+    super::{details::*, Argument, AttrIter, Name, Property, Ty},
     crate::Span,
     core::fmt,
 };
@@ -39,6 +39,14 @@ impl<'kdl> Node<'kdl> {
         AttrIter {
             entries: &self.entries[1..=num_attrs as usize],
         }
+    }
+
+    pub fn properties(&self) -> impl Iterator<Item = &Property<'kdl>> {
+        self.attrs().filter_map(|attr| attr.as_property())
+    }
+
+    pub fn arguments(&self) -> impl Iterator<Item = &Argument<'kdl>> {
+        self.attrs().filter_map(|attr| attr.as_argument())
     }
 
     pub fn children(&self) -> NodeIter<'_, 'kdl> {
