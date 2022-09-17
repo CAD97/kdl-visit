@@ -12,6 +12,7 @@ ast = ["std", "decimal"]
 decimal = ["dep:rust_decimal"]
 lexical = ["dep:lexical-core"]
 miette = ["dep:miette", "std"]
+render = ["miette", "miette/fancy"]
 
 [dependencies]
 displaydoc = { version = "0.2.3", default-features = false }

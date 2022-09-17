@@ -22,7 +22,7 @@ use miette::SourceCode;
 /// A collection of errors that occurred during parsing KDL.
 #[derive(Debug, Display, Clone)]
 #[cfg_attr(feature = "miette", derive(miette::Diagnostic))]
-#[cfg_attr(all(doc, not(doctest)), doc(cfg(feature = "alloc")))]
+#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 #[displaydoc("errors occured while parsing")]
 pub struct ParseErrors<Source: fmt::Debug + SourceCode = String> {
     #[cfg_attr(feature = "miette", source_code)]
@@ -33,6 +33,41 @@ pub struct ParseErrors<Source: fmt::Debug + SourceCode = String> {
 
 #[cfg(feature = "std")]
 impl<Source: fmt::Debug + SourceCode> std::error::Error for ParseErrors<Source> {}
+
+#[cfg(feature = "render")]
+impl<Source: fmt::Debug + SourceCode> ParseErrors<Source> {
+    fn render_impl(
+        &self,
+        theme: miette::GraphicalTheme,
+        writer: &mut impl fmt::Write,
+    ) -> fmt::Result {
+        miette::GraphicalReportHandler::new_themed(theme)
+            .with_urls(false)
+            .render_report(writer, self)
+    }
+
+    pub fn render<'a>(
+        &'a self,
+        get_theme: impl 'a + Fn() -> miette::GraphicalTheme,
+    ) -> impl 'a + fmt::Display {
+        struct Display<F>(F);
+        impl<F> fmt::Display for Display<F>
+        where
+            F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result,
+        {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                (self.0)(f)
+            }
+        }
+
+        Display(move |f: &mut fmt::Formatter<'_>| self.render_impl(get_theme(), f))
+    }
+
+    pub fn display(&self, theme: miette::GraphicalTheme) -> impl '_ + fmt::Display {
+        let theme = std::cell::Cell::new(Some(theme));
+        self.render(move || theme.take().unwrap())
+    }
+}
 
 impl ParseErrors<Cow<'_, str>> {
     pub fn into_owned(self) -> ParseErrors<String> {

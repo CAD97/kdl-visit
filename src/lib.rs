@@ -1,6 +1,6 @@
 #![no_std]
 #![warn(missing_debug_implementations, unreachable_pub)]
-#![cfg_attr(all(doc, not(doctest)), feature(doc_cfg, doc_auto_cfg))]
+#![cfg_attr(doc_cfg, feature(doc_cfg, doc_auto_cfg))]
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]

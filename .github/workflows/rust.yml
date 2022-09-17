@@ -18,7 +18,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@beta
       - uses: taiki-e/install-action@cargo-hack
       - uses: Swatinem/rust-cache@v2
-      - run: cargo hack --feature-powerset --exclude-features unstable-extern_types test
+      - run: cargo hack --feature-powerset test
 
   check-no-alloc:
     runs-on: ubuntu-latest
